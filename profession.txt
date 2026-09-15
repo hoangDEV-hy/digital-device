@@ -1,0 +1,19 @@
+1. Users — Quản lý người dùng
+
+Vai trò trong hệ thống: 3 loại người dùng dùng chung 1 bảng, phân biệt bằng role:
+
+customer: đăng ký, đăng nhập, mua sản phẩm, xem sản phẩm
+seller: đăng bán sản phẩm số, quản lý đơn hàng của sản phẩm mình bán
+admin: duyệt sản phẩm, khóa tài khoản vi phạm, quản lý toàn hệ thống
+Đăng ký, Đăng nhập→ mật khẩu plain text, jwt token
+Admin có thể đổi status sang locked để khóa tài khoản vi phạm (seller bán hàng giả, khách gian lận thanh toán...)
+2. Categories — Phân loại sản phẩm Admin tạo danh mục
+3. Products — Sản phẩm số
+4. Orders — Đơn hàng
+5. OrderItems — Chi tiết đơn hàng
+6. Payments — Thanh toán phương thức thanh toán (VNPay/Momo...)
+7. Licenses — Cấp quyền sở hữu (đặc trưng sản phẩm số)
+8. Reviews — Đánh giá
+9. Cart — Giỏ hàng
+10. CartItems — Sản phẩm trong giỏ
+11.Download sản phẩm ( kiểm tra quyền gắn với licenses)

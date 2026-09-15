@@ -1,0 +1,677 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Digital Marketplace API - Test Spec",
+        "version": "1.0",
+        "description": "OpenAPI spec for testing all implemented endpoints (URL / input / output)."
+    },
+    "servers": [
+        {
+            "url": "http://localhost:3000"
+        }
+    ],
+    "components": {
+        "schemas": {
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object"
+                    }
+                }
+            },
+            "RegisterRequest": {
+                "type": "object",
+                "required": [
+                    "fullName",
+                    "email",
+                    "password"
+                ],
+                "properties": {
+                    "fullName": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "password": {
+                        "type": "string"
+                    }
+                }
+            },
+            "AuthResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "accessToken": {
+                                "type": "string"
+                            },
+                            "refreshToken": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "UserProfile": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "fullName": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            },
+            "CartResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "data": {
+                        "type": "object"
+                    }
+                }
+            },
+            "PaymentInitiateRequest": {
+                "type": "object",
+                "properties": {
+                    "orderId": {
+                        "type": "string"
+                    },
+                    "method": {
+                        "type": "string"
+                    }
+                }
+            },
+            "PaymentInitiateResponse": {
+                "type": "object",
+                "properties": {
+                    "success": {
+                        "type": "boolean"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "paymentId": {
+                                "type": "string"
+                            },
+                            "redirectUrl": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "License": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "userId": {
+                        "type": "string"
+                    },
+                    "productId": {
+                        "type": "string"
+                    },
+                    "orderId": {
+                        "type": "string"
+                    },
+                    "issuedAt": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    },
+    "paths": {
+        "/api/auth/register": {
+            "post": {
+                "summary": "Register new user",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Registered",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "summary": "Login and receive tokens",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tokens",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AuthResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/refresh": {
+            "post": {
+                "summary": "Refresh access token",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "refreshToken": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "New access token",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "accessToken": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/api/auth/logout": {
+                "post": {
+                    "summary": "Logout (invalidate refresh token)",
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "refreshToken": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Logged out"
+                        }
+                    }
+                }
+            },
+            "/api/users/me": {
+                "get": {
+                    "summary": "Get current user profile",
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "User profile",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/UserProfile"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/api/admin/users/{userId}/lock": {
+                "post": {
+                    "summary": "Lock a user (admin only)",
+                    "parameters": [
+                        {
+                            "in": "path",
+                            "name": "userId",
+                            "required": true,
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Locked"
+                        }
+                    }
+                }
+            },
+            "/api/admin/users/{userId}/unlock": {
+                "post": {
+                    "summary": "Unlock a user (admin only)",
+                    "parameters": [
+                        {
+                            "in": "path",
+                            "name": "userId",
+                            "required": true,
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Unlocked"
+                        }
+                    }
+                }
+            },
+            "/api/admin/users/{userId}/reset-device-ip": {
+                "post": {
+                    "summary": "Reset user's device IP binding (admin only)",
+                    "parameters": [
+                        {
+                            "in": "path",
+                            "name": "userId",
+                            "required": true,
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Reset"
+                        }
+                    }
+                }
+            },
+            "/api/uploads/image": {
+                "post": {
+                    "summary": "Upload image (avatar/thumbnail)",
+                    "requestBody": {
+                        "content": {
+                            "multipart/form-data": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "image": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Uploaded"
+                        }
+                    }
+                }
+            },
+            "/api/uploads/file": {
+                "post": {
+                    "summary": "Upload content file (pdf/epub/mp4)",
+                    "requestBody": {
+                        "content": {
+                            "multipart/form-data": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "file": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Uploaded"
+                        }
+                    }
+                }
+            },
+            "/api/cart": {
+                "get": {
+                    "summary": "Get current user's cart",
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Cart data"
+                        }
+                    }
+                }
+            },
+            "/api/cart/items": {
+                "post": {
+                    "summary": "Add item to cart",
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "requestBody": {
+                        "required": true,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "productId": {
+                                            "type": "string"
+                                        },
+                                        "quantity": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Item added"
+                        }
+                    }
+                }
+            },
+            "/api/cart/items/{itemId}": {
+                "delete": {
+                    "summary": "Remove item from cart",
+                    "parameters": [
+                        {
+                            "in": "path",
+                            "name": "itemId",
+                            "required": true,
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Removed"
+                        }
+                    }
+                }
+            },
+            "/api/cart/checkout": {
+                "post": {
+                    "summary": "Checkout cart and create order",
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Order created"
+                        }
+                    }
+                }
+            },
+            "/api/payments/create": {
+                "post": {
+                    "summary": "Initiate a mock payment for an order",
+                    "requestBody": {
+                        "required": true,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PaymentInitiateRequest"
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Payment initiated",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "$ref": "#/components/schemas/PaymentInitiateResponse"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/api/payments/mock-ipn": {
+                "get": {
+                    "summary": "Mock IPN callback (provider simulator)",
+                    "parameters": [
+                        {
+                            "in": "query",
+                            "name": "orderId",
+                            "required": true,
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "in": "query",
+                            "name": "status",
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "in": "query",
+                            "name": "providerTxId",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "OK"
+                        }
+                    }
+                }
+            },
+            "/api/content/my-library": {
+                "get": {
+                    "summary": "List licenses/products owned by user",
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "List of licenses"
+                        }
+                    }
+                }
+            },
+            "/api/content/licenses/{licenseId}/revoke": {
+                "post": {
+                    "summary": "Revoke a license (admin only)",
+                    "parameters": [
+                        {
+                            "in": "path",
+                            "name": "licenseId",
+                            "required": true,
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Revoked"
+                        }
+                    }
+                }
+            },
+            "/api/content/signed/{productId}": {
+                "get": {
+                    "summary": "Get a signed streaming URL for a product (owner only)",
+                    "parameters": [
+                        {
+                            "in": "path",
+                            "name": "productId",
+                            "required": true,
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "security": [
+                        {
+                            "bearerAuth": []
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Signed URL"
+                        }
+                    }
+                }
+            },
+            "/api/content/stream/{token}": {
+                "get": {
+                    "summary": "Stream content by token",
+                    "parameters": [
+                        {
+                            "in": "path",
+                            "name": "token",
+                            "required": true,
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "responses": {
+                        "200": {
+                            "description": "Binary stream"
+                        }
+                    }
+                }
+            }
+        },
+        "securitySchemes": {}
+    }
