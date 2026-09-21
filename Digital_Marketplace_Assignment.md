@@ -123,20 +123,22 @@ Thông tin
 
 API
 
--   Đăng ký / Đăng nhập
--   Xem chi tiết
--   Cập nhật profile
--   Đổi mật khẩu
--   Danh sách người dùng (Admin)
--   Khóa / Mở khóa tài khoản (Admin)
--   Cấp quyền đổi ip máy( Admin)
--   gửi report
+-   Đăng ký / Đăng nhập/ refest token/logoutout-ok
+-   Xem chi tiết-ok
+-   Cập nhật profile-thiếu api cập nhập
+-   Đổi mật khẩu-ok
+-thay đổi mật khẩu tk admin-thêm trường trong env-test?
+-   Danh sách người dùng (Admin)-thiếu api hiển thị danh sách
+-   Khóa / Mở khóa tài khoản (Admin)-/api/admin/users/{userId}/lock( unlock)-chuyển khoá bằng tên( bảng lựa chọn và tìm kiếm)
+-   Cấp quyền đổi ip máy( Admin)-/api/admin/users/{userId}/reset-device-ip-chuyển khoá bằng tên( bảng lựa chọn và tìm kiếm)
+-   chuyển từ id thành tên-thiếu api
+-   gửi report-thiếu api
 
 ------------------------------------------------------------------------
 
 ## 4.5 Danh mục sản phẩm (Categories)
 
-CRUD (chỉ Admin được tạo/sửa/xóa danh mục)
+CRUD (chỉ Admin được tạo/sửa/xóa danh mục)-thiếu api
 
 Mỗi sản phẩm thuộc một danh mục.
 
@@ -163,12 +165,12 @@ Thông tin
 
 API
 
--   Admin: Duyệt / Từ chối sản phẩm trước khi công khai
--   Customer: Xem chi tiết / Danh sách sản phẩm đã duyệt, Thêm / Cập nhật / Xóa mềm sản phẩm của mình, Tổng doanh thu (theo ngày/tháng/tổng)
+-   Admin: Duyệt / Từ chối sản phẩm trước khi công khai-chưa có api
+-   Customer: Xem chi tiết / Danh sách sản phẩm đã duyệt, Thêm / Cập nhật / Xóa mềm sản phẩm của mình, Tổng doanh thu (theo ngày/tháng/tổng)-thiếu api
 
 ------------------------------------------------------------------------
 
-## 4.7 Đơn hàng (Orders) & Chi tiết đơn hàng (OrderItems)
+## 4.7 Đơn hàng (Orders) & Chi tiết đơn hàng (OrderItems)-chưa test do thiếu api đăng sản phẩm
 
 Orders
 
@@ -192,7 +194,7 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.8 Thanh toán (Payments)
+## 4.8 Thanh toán (Payments)-chưa test do thiếu api đăng sản phẩm
 
 Thông tin
 
@@ -212,7 +214,7 @@ Yêu cầu
 
 ------------------------------------------------------------------------
 
-## 4.9 Cấp quyền sở hữu (Licenses)
+## 4.9 Cấp quyền sở hữu (Licenses)-chưa test do thiếu api đăng sản phẩm
 
 Đặc trưng của sản phẩm số: sau khi thanh toán thành công, hệ thống
 cấp một "License" xác nhận người dùng có quyền truy cập/sử dụng sản
@@ -243,7 +245,7 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.11 Giỏ hàng (Cart) & Sản phẩm trong giỏ (CartItems)
+## 4.11 Giỏ hàng (Cart) & Sản phẩm trong giỏ (CartItems)-chưa test do thiếu api đăng sản phẩm
 
 Cart
 
@@ -263,7 +265,7 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.12 Truy cập nội dung sản phẩm số
+## 4.12 Truy cập nội dung sản phẩm số--chưa test do thiếu api đăng sản phẩm
 
 Chức năng đặc trưng: xem sách (ebook), xem video khóa học...
 
@@ -279,7 +281,7 @@ Yêu cầu
 
 ------------------------------------------------------------------------
 
-# 5. Tìm kiếm
+# 5. Tìm kiếm--chưa test do thiếu api đăng sản phẩm
 
 Danh sách sản phẩm hỗ trợ
 
@@ -308,7 +310,7 @@ Pagination
 
 ------------------------------------------------------------------------
 
-# 6. Upload
+# 6. Upload-ok
 
 Cho phép upload
 
