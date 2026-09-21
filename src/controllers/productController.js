@@ -1,4 +1,6 @@
-const { Product, Category, User } = require('../models');
+const models = require('../models');
+const { Product, Category, User } = models;
+const sequelize = models.sequelize;
 const { Op } = require('sequelize');
 
 exports.create = async (req, res, next) => {
@@ -28,8 +30,7 @@ exports.softDelete = async (req, res, next) => {
     const product = await Product.findByPk(productId);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
     if (product.sellerId !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Forbidden' });
-    product.visibility = 'inactive';
-    await product.save();
+    await product.destroy();
     res.json({ success: true });
   } catch (err) { next(err); }
 };
@@ -65,33 +66,40 @@ exports.getDetails = async (req, res, next) => {
 exports.getRevenue = async (req, res, next) => {
   try {
     const { period = 'total', page = 1, pageSize = 50 } = req.query; // day, month, total
-    const { OrderItem, Order } = require('../models');
-    const whereOrder = { status: 'paid' };
+    const sellerId = req.user.id;
+    const limit = parseInt(pageSize);
+    const offset = (parseInt(page) - 1) * limit;
 
-    // join OrderItem -> Order -> Product filter by sellerId
-    const replacements = { sellerId: req.user.id };
-    let groupClause = '';
-    let selectTime = '';
-    if (period === 'day') {
-      selectTime = "DATE(\"Order\".\"createdAt\")";
-      groupClause = `GROUP BY ${selectTime}`;
-    } else if (period === 'month') {
-      // MySQL: use DATE_FORMAT
-      selectTime = "DATE_FORMAT(\"Order\".\"createdAt\", '%Y-%m')";
-      groupClause = `GROUP BY ${selectTime}`;
+    if (period === 'total') {
+      const results = await sequelize.query(`
+        SELECT SUM(oi.price * oi.quantity) AS total
+        FROM OrderItems AS oi
+        JOIN Products AS p ON p.id = oi.productId
+        JOIN Orders AS o ON o.id = oi.orderId
+        WHERE p.sellerId = :sellerId
+          AND o.status = 'paid'
+      `, { replacements: { sellerId }, type: sequelize.QueryTypes.SELECT });
+      const totalRevenue = (results && results[0] && results[0].total) ? results[0].total : 0;
+      return res.json({ success: true, data: { period, totalRevenue } });
     }
 
-    let sql = `SELECT ${selectTime ? selectTime + ' as period,' : ''} SUM(oi.price * oi.quantity) as total
-      FROM \"OrderItems\" oi
-      JOIN \"Products\" p ON p.id = oi.\"productId\"
-      JOIN \"Orders\" \"Order\" ON \"Order\".id = oi.\"orderId\"
-      WHERE p.\"sellerId\" = :sellerId AND \"Order\".status = 'paid' ${groupClause}
-      ORDER BY ${selectTime ? selectTime : 'total'} DESC
-      LIMIT :limit OFFSET :offset`;
+    // group by day or month
+    let groupExpr = 'DATE(o.createdAt)';
+    if (period === 'month') groupExpr = "DATE_FORMAT(o.createdAt, '%Y-%m')";
 
-    const limit = parseInt(pageSize);
-    const offset = (parseInt(page)-1) * limit;
-    const results = await OrderItem.sequelize.query(sql, { replacements: { sellerId: req.user.id, limit, offset }, type: OrderItem.sequelize.QueryTypes.SELECT });
+    const sql = `
+      SELECT ${groupExpr} AS period, SUM(oi.price * oi.quantity) AS total
+      FROM OrderItems AS oi
+      JOIN Products AS p ON p.id = oi.productId
+      JOIN Orders AS o ON o.id = oi.orderId
+      WHERE p.sellerId = :sellerId
+        AND o.status = 'paid'
+      GROUP BY ${groupExpr}
+      ORDER BY ${groupExpr} DESC
+      LIMIT :limit OFFSET :offset
+    `;
+
+    const results = await sequelize.query(sql, { replacements: { sellerId, limit, offset }, type: sequelize.QueryTypes.SELECT });
     res.json({ success: true, data: { period, items: results, page: parseInt(page), pageSize: limit } });
   } catch (err) { next(err); }
 };

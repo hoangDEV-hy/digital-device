@@ -66,7 +66,7 @@ router.put('/:productId', auth.required, productController.update);
  * /api/products/{productId}:
  *   delete:
  *     tags: [Products]
- *     summary: Soft delete a product (seller/admin)
+ *     summary: Delete a product permanently (seller/admin)
  *     parameters:
  *       - name: productId
  *         in: path

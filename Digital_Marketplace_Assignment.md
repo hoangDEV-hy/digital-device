@@ -445,11 +445,10 @@ update
 thêm cho tôi các api về 
 +Cập nhật profile; PUT /api/users/me-ok  upload_avatar: /api/users/me/avatar-ok
 +Danh sách người dùng (Admin): /api/admin/users-ok
-+chuyển từ id thành tên-thiếu api
 +gửi report( báo cáo người dùng khác)-POST /api/reports-ok, xem danh sách reports(admin)-GET /api/reports-ok
 +CRUD (chỉ Admin được tạo/sửa/xóa danh mục)-ok hiển thị danh mục sản phẩm-/api/categories-ok
 +Admin: Duyệt / Từ chối sản phẩm trước khi công khai-POST /api/admin/products/{productId}/approve-ok
-+Customer: Xem chi tiết GET /api/products/{productId}-OK / Danh sách sản phẩm đã duyệt/ SẢN PHẨM ĐÃ ĐĂNG- GET  /api/products/mine-OK, Thêm / Cập nhật /-OK, Xóa mềm sản phẩm của mình-cập nhập thành xoá cứng, Tổng doanh thu (theo ngày/tháng/tổng)-CẬP NHẬP LẠI MODULE exports.getRevenue THEO SQL MỚI
++Customer: Xem chi tiết GET /api/products/{productId}-OK / Danh sách sản phẩm đã duyệt/ SẢN PHẨM ĐÃ ĐĂNG- GET  /api/products/mine-OK, Thêm / Cập nhật /-OK, Xóa  sản phẩm của mình-ok, Tổng doanh thu (theo ngày/tháng/tổng)-chưa test do chưa có đơn hàng
 +thêm api lấy thông báo (email/push) cho các sự kiện: sản phẩm được duyệt, thanh toán thành công, review mới...-OK
 +thêm api phục vụ cho 
  dashboard 
@@ -457,5 +456,3 @@ thêm cho tôi các api về
     Số user mới, số user bị khóa-/api/admin/dashboard/reported-users
     Số sản phẩm đang chờ duyệt (để admin biết việc tồn đọng)
     danh sách users bị report-/api/admin/reports
-
-yêu cầu kết quả trả về có báo cáo những api đã làm được, api chưa hoàn thiện, nếu có chỗ nào chưa hiểu phải hỏi lại( tuyệt đối không tự ý quyết định)
