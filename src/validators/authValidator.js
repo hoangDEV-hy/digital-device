@@ -13,3 +13,10 @@ exports.login = [
   body('email').isEmail().withMessage('Invalid email'),
   body('password').notEmpty().withMessage('Password required'),
 ];
+
+exports.updateProfile = [
+  body('fullName').optional().notEmpty().withMessage('Full name required'),
+  body('email').optional().isEmail().withMessage('Invalid email'),
+  body('phone').optional().isMobilePhone('vi-VN').withMessage('Invalid Vietnam phone number'),
+  body('avatar').optional().isString().withMessage('Avatar must be a URL string'),
+];

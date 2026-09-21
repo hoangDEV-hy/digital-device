@@ -11,6 +11,8 @@ const Payment = require('./payment')(sequelize, Sequelize.DataTypes);
 const License = require('./license')(sequelize, Sequelize.DataTypes);
 const Cart = require('./cart')(sequelize, Sequelize.DataTypes);
 const CartItem = require('./cartItem')(sequelize, Sequelize.DataTypes);
+const Report = require('./report')(sequelize, Sequelize.DataTypes);
+const Notification = require('./notification')(sequelize, Sequelize.DataTypes);
 
 User.hasMany(Product, { foreignKey: 'sellerId' });
 Product.belongsTo(User, { as: 'seller', foreignKey: 'sellerId' });
@@ -37,6 +39,12 @@ Cart.hasMany(CartItem, { foreignKey: 'cartId' });
 CartItem.belongsTo(Cart, { foreignKey: 'cartId' });
 CartItem.belongsTo(Product, { foreignKey: 'productId' });
 
+// reports & notifications
+User.hasMany(Report, { foreignKey: 'reporterId' });
+Report.belongsTo(User, { as: 'reporter', foreignKey: 'reporterId' });
+User.hasMany(Notification, { foreignKey: 'userId' });
+Notification.belongsTo(User, { foreignKey: 'userId' });
+
 module.exports = {
   sequelize,
   Sequelize,
@@ -50,4 +58,6 @@ module.exports = {
   License,
   Cart,
   CartItem,
+  Report,
+  Notification,
 };

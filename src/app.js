@@ -14,6 +14,10 @@ const uploadRoutes = require('./routes/uploads');
 const adminRoutes = require('./routes/admin');
 const cartRoutes = require('./routes/cart');
 const contentRoutes = require('./routes/content');
+const productsRoutes = require('./routes/products');
+const categoriesRoutes = require('./routes/categories');
+const reportRoutes = require('./routes/reports');
+const notificationRoutes = require('./routes/notifications');
 
 
 const app = express();
@@ -32,6 +36,10 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/content', contentRoutes);
+app.use('/api/products', productsRoutes);
+app.use('/api/categories', categoriesRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.use(errorHandler);
 

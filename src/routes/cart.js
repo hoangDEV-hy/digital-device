@@ -23,6 +23,13 @@ const validate = require('../middlewares/validate');
  *     responses:
  *       200:
  *         description: Cart
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
  */
 router.get('/', auth.required, cartController.getCart);
 
