@@ -80,6 +80,17 @@ const options = {
             type: { type: 'string' }
           }
         },
+        Review: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            userId: { type: 'string' },
+            productId: { type: 'string' },
+            rating: { type: 'integer', minimum: 1, maximum: 5 },
+            content: { type: 'string' },
+            createdAt: { type: 'string', format: 'date-time' }
+          }
+        },
         Report: {
           type: 'object',
           properties: {

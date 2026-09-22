@@ -215,7 +215,7 @@ Yêu cầu
 
 ------------------------------------------------------------------------
 
-## 4.9 Cấp quyền sở hữu (Licenses)-chưa test do thiếu api đăng sản phẩm
+## 4.9 Cấp quyền sở hữu (Licenses)-ok
 
 Đặc trưng của sản phẩm số: sau khi thanh toán thành công, hệ thống
 cấp một "License" xác nhận người dùng có quyền truy cập/sử dụng sản
@@ -238,8 +238,7 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.10 Đánh giá (Reviews)
-
+## 4.10 Đánh giá (Reviews) -ok
 -   Customer chỉ được đánh giá sản phẩm đã mua (đã có License), có thể xem sản phẩm của mình bán
 -   Thông tin: điểm số (rating), nội dung, người đánh giá, sản phẩm
 -   Admin có thể gỡ review vi phạm
@@ -266,8 +265,10 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.12 Truy cập nội dung sản phẩm số--chưa test do thiếu api đăng sản phẩm
-
+## 4.12 Truy cập nội dung sản phẩm số--ok
+/api/content/signed/{productId}-lấy token cho stream
+    { url: `/api/content/stream/${token}` }
+/api/content/stream/{token}--phát nội dung
 Chức năng đặc trưng: xem sách (ebook), xem video khóa học...
 
 Yêu cầu
@@ -431,10 +432,10 @@ Yêu cầu
 }
 ```
 ------------------------------------------------------------------------
-# thông báo 
+# thông báo -ok
 Không có thông báo (email/push) cho các sự kiện: sản phẩm được duyệt, thanh toán thành công, review mới...
 -----------------------------------------------------------
-# dashboard
+# dashboard-ok
  -admin (crud)
     Số user mới, số user bị khóa
     Số sản phẩm đang chờ duyệt (để admin biết việc tồn đọng)

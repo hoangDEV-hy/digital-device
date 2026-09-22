@@ -13,6 +13,7 @@ const Cart = require('./cart')(sequelize, Sequelize.DataTypes);
 const CartItem = require('./cartItem')(sequelize, Sequelize.DataTypes);
 const Report = require('./report')(sequelize, Sequelize.DataTypes);
 const Notification = require('./notification')(sequelize, Sequelize.DataTypes);
+const Review = require('./review')(sequelize, Sequelize.DataTypes);
 
 User.hasMany(Product, { foreignKey: 'sellerId' });
 Product.belongsTo(User, { as: 'seller', foreignKey: 'sellerId' });
@@ -44,6 +45,10 @@ User.hasMany(Report, { foreignKey: 'reporterId' });
 Report.belongsTo(User, { as: 'reporter', foreignKey: 'reporterId' });
 User.hasMany(Notification, { foreignKey: 'userId' });
 Notification.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(Review, { foreignKey: 'userId' });
+Review.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+Product.hasMany(Review, { foreignKey: 'productId' });
+Review.belongsTo(Product, { foreignKey: 'productId' });
 
 module.exports = {
   sequelize,
@@ -60,4 +65,5 @@ module.exports = {
   CartItem,
   Report,
   Notification,
+  Review,
 };
