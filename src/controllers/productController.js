@@ -24,7 +24,7 @@ exports.update = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-exports.softDelete = async (req, res, next) => {
+exports.Delete = async (req, res, next) => {
   try {
     const { productId } = req.params;
     const product = await Product.findByPk(productId);

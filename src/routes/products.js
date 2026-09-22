@@ -23,6 +23,7 @@ const productController = require('../controllers/productController');
  *       200:
  *         description: Created
  */
+router.post('/', auth.required, productController.create);
 
 /**
  * @swagger
@@ -79,7 +80,7 @@ router.put('/:productId', auth.required, productController.update);
  *       200:
  *         description: Deleted
  */
-router.delete('/:productId', auth.required, productController.softDelete);
+router.delete('/:productId', auth.required, productController.Delete);
 /**
  * @swagger
  * /api/products/approved:

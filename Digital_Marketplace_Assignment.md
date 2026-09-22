@@ -281,7 +281,7 @@ Yêu cầu
 
 ------------------------------------------------------------------------
 
-# 5. Tìm kiếm--chưa test do thiếu api đăng sản phẩm
+# 5. Tìm kiếm-ok
 
 Danh sách sản phẩm hỗ trợ
 
