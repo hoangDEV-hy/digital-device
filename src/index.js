@@ -7,8 +7,13 @@ const PORT = process.env.PORT || 3000;
 async function start() {
   try {
     await sequelize.authenticate();
-    await sequelize.sync();
-    console.log('Database connected and synced');
+    const enableSync = process.env.DB_SYNC ? process.env.DB_SYNC === 'true' : (process.env.NODE_ENV !== 'production');
+    if (enableSync) {
+      await sequelize.sync();
+      console.log('Database connected and synced');
+    } else {
+      console.log('Database connected (sync disabled by DB_SYNC=false)');
+    }
     // Seed default admin if not exists
     const { User } = require('./models');
     const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@example.com';

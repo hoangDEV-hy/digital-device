@@ -123,20 +123,22 @@ Thông tin
 
 API
 
--   Đăng ký / Đăng nhập
--   Xem chi tiết
--   Cập nhật profile
--   Đổi mật khẩu
--   Danh sách người dùng (Admin)
--   Khóa / Mở khóa tài khoản (Admin)
--   Cấp quyền đổi ip máy( Admin)
--   gửi report
+-   Đăng ký / Đăng nhập/ refest token/logoutout-ok
+-   Xem chi tiết-ok
+-   Cập nhật profile-ok
+-   Đổi mật khẩu-ok
+-thay đổi mật khẩu tk admin-thêm trường trong env-test?
+-   Danh sách người dùng (Admin)-ok
+-   Khóa / Mở khóa tài khoản (Admin)-/api/admin/users/{userId}/lock( unlock)-chuyển khoá bằng tên( bảng lựa chọn và tìm kiếm)
+-   Cấp quyền đổi ip máy( Admin)-/api/admin/users/{userId}/reset-device-ip-chuyển khoá bằng tên( bảng lựa chọn và tìm kiếm)
+-   chuyển từ id thành tên-ok
+-   gửi report-ok
 
 ------------------------------------------------------------------------
 
 ## 4.5 Danh mục sản phẩm (Categories)
 
-CRUD (chỉ Admin được tạo/sửa/xóa danh mục)
+CRUD (chỉ Admin được tạo/sửa/xóa danh mục)-ok
 
 Mỗi sản phẩm thuộc một danh mục.
 
@@ -163,12 +165,12 @@ Thông tin
 
 API
 
--   Admin: Duyệt / Từ chối sản phẩm trước khi công khai
--   Customer: Xem chi tiết / Danh sách sản phẩm đã duyệt, Thêm / Cập nhật / Xóa mềm sản phẩm của mình, Tổng doanh thu (theo ngày/tháng/tổng)
+-   Admin: Duyệt / Từ chối sản phẩm trước khi công khai-ok
+-   Customer: Xem chi tiết / Danh sách sản phẩm đã duyệt, Thêm / Cập nhật / Xóa  sản phẩm của mình, Tổng doanh thu (theo ngày/tháng/tổng)-ok
 
 ------------------------------------------------------------------------
 
-## 4.7 Đơn hàng (Orders) & Chi tiết đơn hàng (OrderItems)
+## 4.7 Đơn hàng (Orders) & Chi tiết đơn hàng (OrderItems)-ok
 
 Orders
 
@@ -192,7 +194,7 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.8 Thanh toán (Payments)
+## 4.8 Thanh toán (Payments)-ok
 
 Thông tin
 
@@ -209,10 +211,11 @@ Yêu cầu
     lập (mock) callback/IPN cho môi trường fresher
 -   Khi thanh toán thành công → tự động sinh License cho từng sản
     phẩm trong đơn hàng
+-thiếu api xác thực thanh toán thành công thất bại
 
 ------------------------------------------------------------------------
 
-## 4.9 Cấp quyền sở hữu (Licenses)
+## 4.9 Cấp quyền sở hữu (Licenses)-ok
 
 Đặc trưng của sản phẩm số: sau khi thanh toán thành công, hệ thống
 cấp một "License" xác nhận người dùng có quyền truy cập/sử dụng sản
@@ -235,15 +238,14 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.10 Đánh giá (Reviews)
-
+## 4.10 Đánh giá (Reviews) -ok
 -   Customer chỉ được đánh giá sản phẩm đã mua (đã có License), có thể xem sản phẩm của mình bán
 -   Thông tin: điểm số (rating), nội dung, người đánh giá, sản phẩm
 -   Admin có thể gỡ review vi phạm
 
 ------------------------------------------------------------------------
 
-## 4.11 Giỏ hàng (Cart) & Sản phẩm trong giỏ (CartItems)
+## 4.11 Giỏ hàng (Cart) & Sản phẩm trong giỏ (CartItems)-ok
 
 Cart
 
@@ -263,8 +265,10 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.12 Truy cập nội dung sản phẩm số
-
+## 4.12 Truy cập nội dung sản phẩm số--ok
+/api/content/signed/{productId}-lấy token cho stream
+    { url: `/api/content/stream/${token}` }
+/api/content/stream/{token}--phát nội dung
 Chức năng đặc trưng: xem sách (ebook), xem video khóa học...
 
 Yêu cầu
@@ -279,7 +283,7 @@ Yêu cầu
 
 ------------------------------------------------------------------------
 
-# 5. Tìm kiếm
+# 5. Tìm kiếm-ok
 
 Danh sách sản phẩm hỗ trợ
 
@@ -308,7 +312,7 @@ Pagination
 
 ------------------------------------------------------------------------
 
-# 6. Upload
+# 6. Upload-ok
 
 Cho phép upload
 
@@ -428,11 +432,29 @@ Yêu cầu
 }
 ```
 ------------------------------------------------------------------------
-# thông báo 
+# thông báo -ok
 Không có thông báo (email/push) cho các sự kiện: sản phẩm được duyệt, thanh toán thành công, review mới...
 -----------------------------------------------------------
-# dashboard
+# dashboard-ok
  -admin (crud)
     Số user mới, số user bị khóa
     Số sản phẩm đang chờ duyệt (để admin biết việc tồn đọng)
     danh sách users bị report
+
+
+
+update
+thêm cho tôi các api về 
++Cập nhật profile; PUT /api/users/me-ok  upload_avatar: /api/users/me/avatar-ok
++Danh sách người dùng (Admin): /api/admin/users-ok
++gửi report( báo cáo người dùng khác)-POST /api/reports-ok, xem danh sách reports(admin)-GET /api/reports-ok
++CRUD (chỉ Admin được tạo/sửa/xóa danh mục)-ok hiển thị danh mục sản phẩm-/api/categories-ok
++Admin: Duyệt / Từ chối sản phẩm trước khi công khai-POST /api/admin/products/{productId}/approve-ok
++Customer: Xem chi tiết GET /api/products/{productId}-OK / Danh sách sản phẩm đã duyệt/ SẢN PHẨM ĐÃ ĐĂNG- GET  /api/products/mine-OK, Thêm / Cập nhật /-OK, Xóa  sản phẩm của mình-ok, Tổng doanh thu (theo ngày/tháng/tổng)-chưa test do chưa có đơn hàng
++thêm api lấy thông báo (email/push) cho các sự kiện: sản phẩm được duyệt, thanh toán thành công, review mới...-OK
++thêm api phục vụ cho 
+ dashboard 
+ admin (crud)-tổng quan 3 thông số-/api/admin/dashboard/summary-ok
+    Số user mới, số user bị khóa-/api/admin/dashboard/reported-users
+    Số sản phẩm đang chờ duyệt (để admin biết việc tồn đọng)
+    danh sách users bị report-/api/admin/reports

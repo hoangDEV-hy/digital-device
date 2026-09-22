@@ -22,6 +22,17 @@ const licenseController = require('../controllers/licenseController');
  *     responses:
  *       200:
  *         description: User licenses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id: { type: 'string' }
  */
 router.get('/my-library', auth.required, licenseController.myLibrary);
 
@@ -42,6 +53,10 @@ router.get('/my-library', auth.required, licenseController.myLibrary);
  *     responses:
  *       200:
  *         description: Revoked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/licenses/:licenseId/revoke', auth.required, role.requireAdmin, licenseController.revoke);
 
@@ -62,6 +77,13 @@ router.post('/licenses/:licenseId/revoke', auth.required, role.requireAdmin, lic
  *     responses:
  *       200:
  *         description: Signed URL
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url:
+ *                   type: string
  */
 router.get('/signed/:productId', auth.required, licenseController.getSignedUrl);
 
@@ -80,6 +102,11 @@ router.get('/signed/:productId', auth.required, licenseController.getSignedUrl);
  *     responses:
  *       200:
  *         description: Streamed file
+ *         content:
+ *           application/octet-stream:
+ *             schema:
+ *               type: string
+ *               format: binary
  */
 router.get('/stream/:token', licenseController.streamByToken);
 

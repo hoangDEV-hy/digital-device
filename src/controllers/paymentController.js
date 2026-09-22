@@ -13,6 +13,13 @@ exports.createPayment = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+/*
+  cơ chế
+  API 1 — /create-tạo thanh toán
+  API 2 — /mock-ipn-việc server sẽ làm sau khi thanh toán thành công/ thất bại
+  -->chưa có cơ chế kiểm tra thanh toán thành công hay chưa?
+*/ 
+
 // Mock IPN endpoint — provider calls this to notify payment result
 exports.mockIpn = async (req, res, next) => {
   try {
@@ -33,6 +40,11 @@ exports.mockIpn = async (req, res, next) => {
       // Generate licenses for each order item
       for (const item of await OrderItem.findAll({ where: { orderId } })) {
         await License.create({ userId: order.userId, productId: item.productId, orderId: order.id });
+          // create notification to seller and buyer
+          const { Notification } = require('../models');
+          await Notification.create({ userId: order.userId, type: 'payment_success', channel: 'email', payload: { orderId: order.id } });
+          const product = await Product.findByPk(item.productId);
+          if (product) await Notification.create({ userId: product.sellerId, type: 'product_sold', channel: 'in-app', payload: { orderId: order.id, productId: product.id } });
       }
       return res.send('OK');
     }

@@ -41,6 +41,10 @@ npm run migrate
 npm run seed
 ```
 
+Environment variables
+- `DB_SYNC` (true|false) — nếu `true` sẽ chạy `sequelize.sync()` khi khởi động. Mặc định bật trong môi trường dev và tắt trong `production`.
+- `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` — thông tin admin seed.
+
 5) Chạy server (development)
 
 ```bash

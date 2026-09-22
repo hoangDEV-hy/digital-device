@@ -35,6 +35,10 @@ const validate = require('../middlewares/validate');
  *     responses:
  *       200:
  *         description: Registered
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/register', authValidator.register, validate, authController.register);
 
@@ -58,6 +62,10 @@ router.post('/register', authValidator.register, validate, authController.regist
  *     responses:
  *       200:
  *         description: Logged in
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthTokens'
  */
 router.post('/login', authValidator.login, validate, authController.login);
 
@@ -79,6 +87,10 @@ router.post('/login', authValidator.login, validate, authController.login);
  *     responses:
  *       200:
  *         description: New access token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthTokens'
  */
 router.post('/refresh', authController.refreshToken);
 
@@ -100,6 +112,10 @@ router.post('/refresh', authController.refreshToken);
  *     responses:
  *       200:
  *         description: Logged out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post('/logout', authController.logout);
 
