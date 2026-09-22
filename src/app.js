@@ -18,7 +18,7 @@ const productsRoutes = require('./routes/products');
 const categoriesRoutes = require('./routes/categories');
 const reportRoutes = require('./routes/reports');
 const notificationRoutes = require('./routes/notifications');
-
+const orderRoutes = require('./routes/orders');
 
 const app = express();
 
@@ -40,6 +40,7 @@ app.use('/api/products', productsRoutes);
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.use(errorHandler);
 

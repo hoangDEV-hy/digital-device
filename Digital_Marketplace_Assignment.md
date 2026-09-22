@@ -170,7 +170,7 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.7 Đơn hàng (Orders) & Chi tiết đơn hàng (OrderItems)-chưa test do thiếu api đăng sản phẩm
+## 4.7 Đơn hàng (Orders) & Chi tiết đơn hàng (OrderItems)-ok
 
 Orders
 
@@ -245,7 +245,7 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.11 Giỏ hàng (Cart) & Sản phẩm trong giỏ (CartItems)-chưa test do thiếu api đăng sản phẩm
+## 4.11 Giỏ hàng (Cart) & Sản phẩm trong giỏ (CartItems)-ok
 
 Cart
 
