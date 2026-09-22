@@ -58,34 +58,4 @@ router.post('/create', paymentController.createPayment);
  */
 router.get('/mock-ipn', paymentController.mockIpn);
 
-/**
- * @swagger
- * /api/payments/create:
- *   post:
- *     tags: [Payments]
- *     summary: Create a mock payment for an order
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               orderId:
- *                 type: string
- *               method:
- *                 type: string
- *     responses:
- *       200:
- *         description: Payment initiated
- */
-
-/**
- * @swagger
- * /api/payments/mock-ipn:
- *   get:
- *     tags: [Payments]
- *     summary: Mock IPN callback (simulate provider)
- */
-
 module.exports = router;

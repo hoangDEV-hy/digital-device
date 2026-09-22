@@ -194,7 +194,7 @@ API
 
 ------------------------------------------------------------------------
 
-## 4.8 Thanh toán (Payments)-chưa test do thiếu api đăng sản phẩm
+## 4.8 Thanh toán (Payments)-ok
 
 Thông tin
 
@@ -211,6 +211,7 @@ Yêu cầu
     lập (mock) callback/IPN cho môi trường fresher
 -   Khi thanh toán thành công → tự động sinh License cho từng sản
     phẩm trong đơn hàng
+-thiếu api xác thực thanh toán thành công thất bại
 
 ------------------------------------------------------------------------
 

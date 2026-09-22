@@ -13,6 +13,13 @@ exports.createPayment = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+/*
+  cơ chế
+  API 1 — /create-tạo thanh toán
+  API 2 — /mock-ipn-việc server sẽ làm sau khi thanh toán thành công/ thất bại
+  -->chưa có cơ chế kiểm tra thanh toán thành công hay chưa?
+*/ 
+
 // Mock IPN endpoint — provider calls this to notify payment result
 exports.mockIpn = async (req, res, next) => {
   try {
