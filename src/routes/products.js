@@ -144,6 +144,65 @@ router.get('/mine/revenue', auth.required, productController.getRevenue);
 
 /**
  * @swagger
+ * /api/products/search:
+ *   get:
+ *     tags: [Products]
+ *     summary: Search and filter products
+ *     parameters:
+ *       - name: q
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: categoryId
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: minPrice
+ *         in: query
+ *         schema:
+ *           type: number
+ *       - name: maxPrice
+ *         in: query
+ *         schema:
+ *           type: number
+ *       - name: type
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: reviewStatus
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: sellerId
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: sortBy
+ *         in: query
+ *         schema:
+ *           type: string
+ *           enum: [title, price, createdAt]
+ *       - name: sortOrder
+ *         in: query
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: pageSize
+ *         in: query
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Search result
+ */
+router.get('/search', productController.searchProducts);
+
+/**
+ * @swagger
  * /api/products/{productId}:
  *   get:
  *     tags: [Products]

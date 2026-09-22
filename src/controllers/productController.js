@@ -35,15 +35,132 @@ exports.softDelete = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+const normalizePage = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const normalizePageSize = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  const safe = Number.isFinite(parsed) ? parsed : fallback;
+  return Math.min(Math.max(safe, 1), 100);
+};
+
+const buildProductFilters = (query = {}, publicOnly = true) => {
+  const where = {};
+
+  if (publicOnly) {
+    where.reviewStatus = 'approved';
+    where.visibility = 'active';
+  }
+
+  const {
+    q,
+    categoryId,
+    minPrice,
+    maxPrice,
+    type,
+    reviewStatus,
+    sellerId,
+    visibility,
+  } = query;
+
+  if (q) {
+    where[Op.or] = [
+      { title: { [Op.like]: `%${q}%` } },
+      { description: { [Op.like]: `%${q}%` } },
+    ];
+  }
+
+  if (categoryId) where.categoryId = categoryId;
+  if (sellerId) where.sellerId = sellerId;
+  if (type) where.type = type;
+  if (reviewStatus) where.reviewStatus = reviewStatus;
+  if (visibility) where.visibility = visibility;
+
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    where.price = {};
+    if (minPrice !== undefined) where.price[Op.gte] = Number(minPrice);
+    if (maxPrice !== undefined) where.price[Op.lte] = Number(maxPrice);
+  }
+
+  return where;
+};
+
+const buildProductSort = (sortBy = 'createdAt', sortOrder = 'desc') => {
+  const allowedSortFields = ['title', 'price', 'createdAt'];
+  const safeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+  const safeSortOrder = sortOrder === 'asc' ? 'ASC' : 'DESC';
+  return [[safeSortBy, safeSortOrder]];
+};
+
+exports.searchProducts = async (req, res, next) => {
+  try {
+    const {
+      q,
+      categoryId,
+      minPrice,
+      maxPrice,
+      type,
+      reviewStatus,
+      sellerId,
+      visibility,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      page = 1,
+      pageSize = 20,
+    } = req.query;
+
+    const where = buildProductFilters(
+      {
+        q,
+        categoryId,
+        minPrice,
+        maxPrice,
+        type,
+        reviewStatus,
+        sellerId,
+        visibility,
+      },
+      !reviewStatus && !sellerId && !visibility
+    );
+
+    const limit = normalizePageSize(pageSize, 20);
+    const offset = (normalizePage(page, 1) - 1) * limit;
+
+    const products = await Product.findAndCountAll({
+      where,
+      limit,
+      offset,
+      order: buildProductSort(sortBy, sortOrder),
+      include: [{ model: Category }, { model: User, as: 'seller', attributes: ['id', 'fullName'] }],
+    });
+
+    res.json({
+      success: true,
+      data: {
+        items: products.rows,
+        total: products.count,
+        page: normalizePage(page, 1),
+        pageSize: limit,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.getApprovedList = async (req, res, next) => {
   try {
-    const { page = 1, pageSize = 20, q, categoryId } = req.query;
-    const where = { reviewStatus: 'approved', visibility: 'active' };
-    if (q) where.title = { [Op.like]: `%${q}%` };
-    if (categoryId) where.categoryId = categoryId;
-    const products = await Product.findAndCountAll({ where, limit: parseInt(pageSize), offset: (page-1)*pageSize, include: [{ model: Category }, { model: User, as: 'seller', attributes: ['id','fullName'] }] });
-    res.json({ success: true, data: { items: products.rows, total: products.count } });
-  } catch (err) { next(err); }
+    req.query = {
+      ...req.query,
+      reviewStatus: req.query.reviewStatus || 'approved',
+      visibility: req.query.visibility || 'active',
+    };
+    return exports.searchProducts(req, res, next);
+  } catch (err) {
+    next(err);
+  }
 };
 
 exports.getMyProducts = async (req, res, next) => {

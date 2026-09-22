@@ -125,20 +125,20 @@ API
 
 -   Đăng ký / Đăng nhập/ refest token/logoutout-ok
 -   Xem chi tiết-ok
--   Cập nhật profile-thiếu api cập nhập
+-   Cập nhật profile-ok
 -   Đổi mật khẩu-ok
 -thay đổi mật khẩu tk admin-thêm trường trong env-test?
--   Danh sách người dùng (Admin)-thiếu api hiển thị danh sách
+-   Danh sách người dùng (Admin)-ok
 -   Khóa / Mở khóa tài khoản (Admin)-/api/admin/users/{userId}/lock( unlock)-chuyển khoá bằng tên( bảng lựa chọn và tìm kiếm)
 -   Cấp quyền đổi ip máy( Admin)-/api/admin/users/{userId}/reset-device-ip-chuyển khoá bằng tên( bảng lựa chọn và tìm kiếm)
--   chuyển từ id thành tên-thiếu api
--   gửi report-thiếu api
+-   chuyển từ id thành tên-ok
+-   gửi report-ok
 
 ------------------------------------------------------------------------
 
 ## 4.5 Danh mục sản phẩm (Categories)
 
-CRUD (chỉ Admin được tạo/sửa/xóa danh mục)-thiếu api
+CRUD (chỉ Admin được tạo/sửa/xóa danh mục)-ok
 
 Mỗi sản phẩm thuộc một danh mục.
 
@@ -165,8 +165,8 @@ Thông tin
 
 API
 
--   Admin: Duyệt / Từ chối sản phẩm trước khi công khai-thiếu api
--   Customer: Xem chi tiết / Danh sách sản phẩm đã duyệt, Thêm / Cập nhật / Xóa mềm sản phẩm của mình, Tổng doanh thu (theo ngày/tháng/tổng)-thiếu api
+-   Admin: Duyệt / Từ chối sản phẩm trước khi công khai-ok
+-   Customer: Xem chi tiết / Danh sách sản phẩm đã duyệt, Thêm / Cập nhật / Xóa  sản phẩm của mình, Tổng doanh thu (theo ngày/tháng/tổng)-ok
 
 ------------------------------------------------------------------------
 
