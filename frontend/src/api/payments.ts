@@ -1,7 +1,7 @@
-import api from './client';
-import type { ApiResponse } from '../types/auth';
+import api from "./client";
+import type { ApiResponse } from "../types/auth";
 
-export type PaymentStatus = 'pending' | 'success' | 'failed';
+export type PaymentStatus = "pending" | "success" | "failed";
 
 export interface PaymentRecord {
   id: number;
@@ -13,6 +13,7 @@ export interface PaymentRecord {
 }
 
 export const getPayments = async () => {
-  const response = await api.get<ApiResponse<PaymentRecord[]>>('/payments');
+  const response =
+    await api.get<ApiResponse<PaymentRecord[]>>("/admin/payments");
   return response.data;
 };

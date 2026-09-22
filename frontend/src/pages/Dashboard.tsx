@@ -1,28 +1,24 @@
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { DashboardSummary } from '../api/dashboard';
+import { getDashboardSummary } from '../api/dashboard';
 import { StatusBadge } from '../components/StatusBadge';
 
-interface DashboardPageProps {
-  summary: DashboardSummary | undefined;
-  loading: boolean;
-}
+import { useEffect, useState } from 'react';
 
-const revenueData = [
-  { month: 'Jan', revenue: 1200 },
-  { month: 'Feb', revenue: 1800 },
-  { month: 'Mar', revenue: 1500 },
-  { month: 'Apr', revenue: 2200 },
-  { month: 'May', revenue: 2700 },
-  { month: 'Jun', revenue: 3100 },
-  { month: 'Jul', revenue: 2600 },
-];
+export function DashboardPage() {
+  const [summary, setSummary] = useState<DashboardSummary>();
+  const [loading, setLoading] = useState(true);
 
-export function DashboardPage({ summary, loading }: DashboardPageProps) {
+  useEffect(() => {
+    getDashboardSummary()
+      .then((response) => setSummary(response.data))
+      .finally(() => setLoading(false));
+  }, []);
+
   const cards = [
-    { label: 'Số user mới', value: summary?.newUsersCount ?? 0, tone: 'info' },
-    { label: 'Số user bị khóa', value: summary?.lockedUsersCount ?? 0, tone: 'danger' },
-    { label: 'Sản phẩm chờ duyệt', value: summary?.pendingProductsCount ?? 0, tone: 'warning' },
-    { label: 'Report chưa xử lý', value: summary?.unresolvedReportsCount ?? 0, tone: 'neutral' },
+    { label: 'Số user mới', value: summary?.newUsers ?? 0, tone: 'info' },
+    { label: 'Số user bị khóa', value: summary?.lockedUsers ?? 0, tone: 'danger' },
+    { label: 'Sản phẩm chờ duyệt', value: summary?.pendingProducts ?? 0, tone: 'warning' },
   ];
 
   return (
@@ -61,7 +57,7 @@ export function DashboardPage({ summary, loading }: DashboardPageProps) {
 
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={summary?.revenueByPeriod?.length ? summary.revenueByPeriod : revenueData}>
+              <AreaChart data={[]}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="5%" stopColor="#f97316" stopOpacity={0.4} />
@@ -86,18 +82,7 @@ export function DashboardPage({ summary, loading }: DashboardPageProps) {
                 <div className="h-12 rounded bg-slate-200" />
                 <div className="h-12 rounded bg-slate-200" />
               </div>
-            ) : (
-              <>
-                <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
-                  <div className="font-semibold">Nguyễn Văn A</div>
-                  <div className="text-xs opacity-80">5 report chưa xử lý</div>
-                </div>
-                <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-700">
-                  <div className="font-semibold">Trần Thị B</div>
-                  <div className="text-xs opacity-80">2 report chưa xử lý</div>
-                </div>
-              </>
-            )}
+            ) : <div className="text-sm text-slate-500">Chưa có dữ liệu người dùng bị report.</div>}
           </div>
         </div>
       </div>

@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { DataTable } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
+import { deleteReview as deleteReviewApi, getReviews, type ReviewRecord } from '../../api/reviews';
 
 interface ReviewRow {
   id: number;
@@ -14,19 +15,14 @@ interface ReviewRow {
   createdAt: string;
 }
 
-const initialReviews: ReviewRow[] = [
-  { id: 9001, productName: 'Ebook UX Mastery', reviewerName: 'Nguyễn Minh Anh', rating: 5, content: 'Nội dung rõ ràng, nhiều ví dụ thực tế.', createdAt: '2026-09-15' },
-  { id: 9002, productName: 'React Native Pro', reviewerName: 'Trần Hoàng Nam', rating: 4, content: 'Bài giảng tốt, phần nâng cao nên bổ sung thêm.', createdAt: '2026-09-14' },
-  { id: 9003, productName: 'Design System Kit', reviewerName: 'Lê Linh Đan', rating: 2, content: 'File tải xuống chưa đầy đủ như mô tả.', createdAt: '2026-09-13' },
-  { id: 9004, productName: 'SQL Advanced Guide', reviewerName: 'Đỗ An Nhiên', rating: 5, content: 'Tài liệu hữu ích và trình bày dễ theo dõi.', createdAt: '2026-09-12' },
-];
-
 export function ReviewListPage() {
-  const [reviews, setReviews] = useState(initialReviews);
+  const [reviews, setReviews] = useState<ReviewRecord[]>([]);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const pageSize = 4;
+
+  useEffect(() => { getReviews().then((response) => setReviews(response.data ?? [])); }, []);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -36,9 +32,10 @@ export function ReviewListPage() {
 
   const deleteReview = () => {
     if (deleteId === null) return;
-    setReviews((items) => items.filter((review) => review.id !== deleteId));
-    toast.success('Đã ẩn đánh giá khỏi hệ thống');
-    setDeleteId(null);
+    deleteReviewApi(deleteId).then(() => {
+      setReviews((items) => items.filter((review) => review.id !== deleteId));
+      toast.success('Đã ẩn đánh giá khỏi hệ thống');
+    }).finally(() => setDeleteId(null));
   };
 
   return (

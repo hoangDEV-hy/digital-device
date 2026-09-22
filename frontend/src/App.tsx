@@ -34,7 +34,7 @@ export default function App() {
           }
         >
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage summary={undefined} loading={false} />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="users" element={<UserListPage />} />
           <Route path="users/:id" element={<UserDetailPage />} />
           <Route path="categories" element={<CategoryListPage />} />

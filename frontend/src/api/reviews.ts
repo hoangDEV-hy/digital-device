@@ -11,8 +11,15 @@ export interface ReviewRecord {
 }
 
 export const getReviews = async () => {
-  const response = await api.get<ApiResponse<ReviewRecord[]>>('/reviews');
-  return response.data;
+  const response = await api.get<ApiResponse<ReviewRecord[]>>('/admin/reviews');
+  return {
+    success: response.data.success,
+    data: (response.data.data ?? []).map((review: ReviewRecord & { user?: { fullName?: string }; Product?: { title?: string } }) => ({
+      ...review,
+      reviewerName: review.reviewerName ?? review.user?.fullName,
+      productName: review.productName ?? review.Product?.title,
+    })),
+  };
 };
 
 export const deleteReview = async (id: number) => {

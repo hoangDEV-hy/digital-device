@@ -57,6 +57,11 @@ router.post('/users/:userId/reset-device-ip', auth.required, role.requireAdmin, 
  * Admin: list users
  */
 router.get('/users', auth.required, role.requireAdmin, adminController.listUsers);
+router.get('/payments', auth.required, role.requireAdmin, adminController.listPayments);
+router.get('/licenses', auth.required, role.requireAdmin, adminController.listLicenses);
+router.get('/reviews', auth.required, role.requireAdmin, adminController.listReviews);
+router.patch('/reports/:reportId/resolve', auth.required, role.requireAdmin, adminController.resolveReport);
+router.patch('/licenses/:licenseId/revoke', auth.required, role.requireAdmin, adminController.revokeLicense);
 /**
  * @swagger
  * /api/admin/users:

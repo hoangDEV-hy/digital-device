@@ -12,11 +12,11 @@ export interface OrderRecord {
 }
 
 export const getOrders = async () => {
-  const response = await api.get<ApiResponse<OrderRecord[]>>('/orders');
+  const response = await api.get<ApiResponse<OrderRecord[]>>('/orders/all');
   return response.data;
 };
 
-export const getOrderById = async (id: number) => {
+export const getOrderById = async (id: string | number) => {
   const response = await api.get<ApiResponse<OrderRecord>>(`/orders/${id}`);
   return response.data;
 };

@@ -1,22 +1,15 @@
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { StatusBadge } from '../../components/StatusBadge';
-
-const user = {
-  id: 1,
-  fullName: 'Nguyễn Văn A',
-  email: 'a@gmail.com',
-  phone: '0901111222',
-  role: 'customer',
-  status: 'active',
-  createdAt: '2026-09-14',
-  reports: [
-    { id: 1, reason: 'Spam nội dung', createdAt: '2026-09-10' },
-    { id: 2, reason: 'Gian lận thanh toán', createdAt: '2026-09-12' },
-  ],
-};
+import { getUserById, type UserRecord } from '../../api/users';
 
 export function UserDetailPage() {
   const { id } = useParams();
+  const [user, setUser] = useState<UserRecord>();
+
+  useEffect(() => { if (id) getUserById(id).then((response) => setUser(response.data)); }, [id]);
+
+  if (!user) return <div className="p-6 text-sm text-slate-500">Không tìm thấy người dùng.</div>;
 
   return (
     <div className="space-y-6">
@@ -52,12 +45,7 @@ export function UserDetailPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-800">Lịch sử report</h2>
           <div className="mt-4 space-y-3">
-            {user.reports.map((report) => (
-              <div key={report.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="text-sm font-medium text-slate-700">{report.reason}</div>
-                <div className="mt-1 text-xs text-slate-500">{report.createdAt}</div>
-              </div>
-            ))}
+            <div className="text-sm text-slate-500">Chưa có dữ liệu report trong hồ sơ người dùng.</div>
           </div>
         </div>
       </div>

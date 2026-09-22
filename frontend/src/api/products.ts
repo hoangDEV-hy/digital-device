@@ -22,13 +22,14 @@ export interface ProductRecord {
 }
 
 export const getProducts = async () => {
-  const response = await api.get<ApiResponse<ProductRecord[]>>('/products');
-  return response.data;
+  const response = await api.get<ApiResponse<{ items: ProductRecord[] }>>('/products/search?pageSize=100&reviewStatus=all');
+  return { success: response.data.success, data: response.data.data?.items ?? [] };
 };
 
 export const getProductById = async (id: number) => {
   const response = await api.get<ApiResponse<ProductRecord>>(`/products/${id}`);
-  return response.data;
+  const product = response.data.data as ProductRecord & { title?: string; Category?: { name?: string }; seller?: { fullName?: string } };
+  return { ...response.data, data: product ? { ...product, name: product.name ?? product.title, categoryName: product.categoryName ?? product.Category?.name, sellerName: product.sellerName ?? product.seller?.fullName } : product };
 };
 
 export const updateProductApproval = async (id: number, payload: { status: ProductStatus; reason?: string }) => {

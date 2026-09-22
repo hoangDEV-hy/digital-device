@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DataTable } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
+import { getUsers, type UserRecord } from '../../api/users';
 
 interface UserRow {
   id: number;
@@ -15,18 +16,13 @@ interface UserRow {
   createdAt: string;
 }
 
-const users: UserRow[] = [
-  { id: 1, fullName: 'Nguyễn Văn A', email: 'a@gmail.com', phone: '0901111222', role: 'customer', status: 'active', createdAt: '2026-09-14' },
-  { id: 2, fullName: 'Trần Thị B', email: 'b@gmail.com', phone: '0988777666', role: 'admin', status: 'active', createdAt: '2026-09-12' },
-  { id: 3, fullName: 'Lê Văn C', email: 'c@gmail.com', phone: '0912333444', role: 'customer', status: 'locked', createdAt: '2026-09-10' },
-  { id: 4, fullName: 'Phạm Thị D', email: 'd@gmail.com', phone: '0922444555', role: 'customer', status: 'active', createdAt: '2026-09-09' },
-  { id: 5, fullName: 'Hoàng Văn E', email: 'e@gmail.com', phone: '0933555666', role: 'customer', status: 'locked', createdAt: '2026-09-08' },
-];
-
 export function UserListPage() {
+  const [users, setUsers] = useState<UserRecord[]>([]);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize] = useState(3);
+
+  useEffect(() => { getUsers().then((response) => setUsers(response.data ?? [])); }, []);
 
   const filteredUsers = useMemo(() => {
     const normalized = query.trim().toLowerCase();

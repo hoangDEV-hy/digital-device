@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { DataTable } from '../../components/DataTable';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
+import { createCategory, deleteCategory, getCategories, updateCategory, type CategoryRecord } from '../../api/categories';
 
 interface CategoryRow {
   id: number;
@@ -12,21 +13,16 @@ interface CategoryRow {
   status: 'active' | 'inactive';
 }
 
-const initialCategories: CategoryRow[] = [
-  { id: 1, name: 'Sách điện tử', description: 'Ebook, reference, tài liệu số', status: 'active' },
-  { id: 2, name: 'Khóa học video', description: 'Video học tập, khóa học chuyên môn', status: 'active' },
-  { id: 3, name: 'Template', description: 'Template thiết kế và marketing', status: 'inactive' },
-  { id: 4, name: 'Tài liệu', description: 'PDF, slide, docs chuyên đề', status: 'active' },
-];
-
 export function CategoryListPage() {
-  const [categories, setCategories] = useState<CategoryRow[]>(initialCategories);
+  const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [query, setQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ name: '', description: '' });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+
+  useEffect(() => { getCategories().then((response) => setCategories(response.data ?? [])); }, []);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -66,23 +62,15 @@ export function CategoryListPage() {
     }
 
     if (editingId !== null) {
-      setCategories((items) =>
-        items.map((item) =>
-          item.id === editingId
-            ? { ...item, name, description }
-            : item,
-        ),
-      );
+      updateCategory(editingId, { name, description }).then((response) => {
+        setCategories((items) => items.map((item) => item.id === editingId ? response.data : item));
+      });
       toast.success('Cập nhật danh mục thành công');
     } else {
-      const newCategory: CategoryRow = {
-        id: Date.now(),
-        name,
-        description,
-        status: 'active',
-      };
-      setCategories((items) => [newCategory, ...items]);
-      toast.success('Thêm danh mục thành công');
+      createCategory({ name, description }).then((response) => {
+        setCategories((items) => [response.data, ...items]);
+        toast.success('Thêm danh mục thành công');
+      });
     }
 
     setModalOpen(false);
@@ -98,19 +86,10 @@ export function CategoryListPage() {
       return;
     }
 
-    // This mimics backend rule for product-assigned category errors.
-    const category = categories.find((item) => item.id === pendingDeleteId);
-    if (category?.name === 'Khóa học video') {
-      toast.error('Không thể xóa danh mục vì còn sản phẩm thuộc danh mục này');
-      setConfirmOpen(false);
-      setPendingDeleteId(null);
-      return;
-    }
-
-    setCategories((items) => items.filter((item) => item.id !== pendingDeleteId));
-    toast.success('Xóa danh mục thành công');
-    setConfirmOpen(false);
-    setPendingDeleteId(null);
+    deleteCategory(pendingDeleteId).then(() => {
+      setCategories((items) => items.filter((item) => item.id !== pendingDeleteId));
+      toast.success('Xóa danh mục thành công');
+    }).finally(() => { setConfirmOpen(false); setPendingDeleteId(null); });
   };
 
   return (

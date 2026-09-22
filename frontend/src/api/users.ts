@@ -13,12 +13,12 @@ export interface UserRecord {
 }
 
 export const getUsers = async () => {
-  const response = await api.get<ApiResponse<UserRecord[]>>('/users');
-  return response.data;
+  const response = await api.get<ApiResponse<{ items: UserRecord[]; total: number }>>('/admin/users');
+  return { success: response.data.success, data: response.data.data?.items ?? [] };
 };
 
-export const getUserById = async (id: number) => {
-  const response = await api.get<ApiResponse<UserRecord>>(`/users/${id}`);
+export const getUserById = async (id: string | number) => {
+  const response = await api.get<ApiResponse<UserRecord>>(`/admin/users/${id}`);
   return response.data;
 };
 

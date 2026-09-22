@@ -1,4 +1,4 @@
-const { User, Product } = require('../models');
+const { User, Product, Payment, License, Review } = require('../models');
 const { Op } = require('sequelize');
 
 exports.listUsers = async (req, res, next) => {
@@ -69,5 +69,48 @@ exports.resetDeviceIp = async (req, res, next) => {
     user.deviceIp = null;
     await user.save();
     res.json({ success: true });
+  } catch (err) { next(err); }
+};
+
+exports.listPayments = async (req, res, next) => {
+  try {
+    const payments = await Payment.findAll({ order: [['createdAt', 'DESC']] });
+    res.json({ success: true, data: payments });
+  } catch (err) { next(err); }
+};
+
+exports.listLicenses = async (req, res, next) => {
+  try {
+    const licenses = await License.findAll({ include: [User, Product], order: [['issuedAt', 'DESC']] });
+    res.json({ success: true, data: licenses });
+  } catch (err) { next(err); }
+};
+
+exports.listReviews = async (req, res, next) => {
+  try {
+    const reviews = await Review.findAll({ include: [{ model: User, as: 'user' }, Product], order: [['createdAt', 'DESC']] });
+    res.json({ success: true, data: reviews });
+  } catch (err) { next(err); }
+};
+
+exports.resolveReport = async (req, res, next) => {
+  try {
+    const { Report } = require('../models');
+    const report = await Report.findByPk(req.params.reportId);
+    if (!report) return res.status(404).json({ success: false, message: 'Report not found' });
+    report.status = 'reviewed';
+    await report.save();
+    res.json({ success: true, data: report });
+  } catch (err) { next(err); }
+};
+
+exports.revokeLicense = async (req, res, next) => {
+  try {
+    const { License } = require('../models');
+    const license = await License.findByPk(req.params.licenseId);
+    if (!license) return res.status(404).json({ success: false, message: 'License not found' });
+    license.status = 'revoked';
+    await license.save();
+    res.json({ success: true, data: license });
   } catch (err) { next(err); }
 };

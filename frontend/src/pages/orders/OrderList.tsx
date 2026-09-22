@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DataTable } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
-import type { OrderStatus } from '../../api/orders';
+import { getOrders, type OrderRecord, type OrderStatus } from '../../api/orders';
 
 interface OrderRow {
   id: number;
@@ -15,14 +15,6 @@ interface OrderRow {
   paymentMethod: string;
   createdAt: string;
 }
-
-const orders: OrderRow[] = [
-  { id: 1001, customerName: 'Nguyễn Minh Anh', productName: 'Ebook UX Mastery', totalAmount: 290000, status: 'paid', paymentMethod: 'MoMo', createdAt: '2026-09-15 10:24' },
-  { id: 1002, customerName: 'Trần Hoàng Nam', productName: 'React Native Pro', totalAmount: 690000, status: 'pending', paymentMethod: 'VNPay', createdAt: '2026-09-15 09:12' },
-  { id: 1003, customerName: 'Lê Linh Đan', productName: 'Design System Kit', totalAmount: 450000, status: 'failed', paymentMethod: 'Banking', createdAt: '2026-09-14 16:48' },
-  { id: 1004, customerName: 'Phạm Cường', productName: 'Motion Pack 2026', totalAmount: 520000, status: 'cancelled', paymentMethod: 'MoMo', createdAt: '2026-09-14 14:02' },
-  { id: 1005, customerName: 'Đỗ An Nhiên', productName: 'SQL Advanced Guide', totalAmount: 180000, status: 'paid', paymentMethod: 'VNPay', createdAt: '2026-09-13 08:35' },
-];
 
 const statusLabels: Record<OrderStatus, string> = {
   pending: 'Pending',
@@ -39,15 +31,18 @@ const statusTones: Record<OrderStatus, 'warning' | 'success' | 'danger' | 'neutr
 };
 
 export function OrderListPage() {
+  const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'all' | OrderStatus>('all');
   const [page, setPage] = useState(1);
   const pageSize = 4;
 
+  useEffect(() => { getOrders().then((response) => setOrders(response.data ?? [])); }, []);
+
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return orders.filter((order) => {
-      const matchesQuery = !normalized || `${order.id} ${order.customerName} ${order.productName} ${order.paymentMethod}`.toLowerCase().includes(normalized);
+      const matchesQuery = !normalized || `${order.id} ${order.customerName ?? ''} ${order.totalAmount}`.toLowerCase().includes(normalized);
       return matchesQuery && (status === 'all' || order.status === status);
     });
   }, [query, status]);
@@ -95,10 +90,10 @@ export function OrderListPage() {
       <DataTable
         columns={[
           { key: 'id', header: 'Mã đơn', render: (row) => <span className="font-semibold text-slate-800">#{row.id}</span> },
-          { key: 'customerName', header: 'Khách hàng', render: (row) => <div><div className="font-medium text-slate-800">{row.customerName}</div><div className="text-xs text-slate-500">{row.productName}</div></div> },
+          { key: 'customerName', header: 'Khách hàng', render: (row) => <div className="font-medium text-slate-800">{row.customerName ?? '-'}</div> },
           { key: 'totalAmount', header: 'Tổng tiền', render: (row) => <span className="font-medium text-slate-700">{row.totalAmount.toLocaleString('vi-VN')}đ</span> },
           { key: 'status', header: 'Trạng thái', render: (row) => <StatusBadge label={statusLabels[row.status]} tone={statusTones[row.status]} /> },
-          { key: 'paymentMethod', header: 'Thanh toán' },
+          { key: 'paymentMethod', header: 'Thanh toán', render: () => '-' },
           { key: 'createdAt', header: 'Thời gian' },
           { key: 'actions', header: 'Thao tác', render: (row) => <Link to={`/orders/${row.id}`} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">Chi tiết</Link> },
         ]}

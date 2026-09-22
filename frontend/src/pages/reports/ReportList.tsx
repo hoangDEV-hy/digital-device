@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { DataTable } from '../../components/DataTable';
@@ -6,44 +6,31 @@ import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
 
-interface ReportRow {
-  id: number;
-  reporterName: string;
-  reportedUserName: string;
-  reportedUserId: number;
-  reportedProductName: string;
-  reason: string;
-  createdAt: string;
-  status: 'pending' | 'resolved';
-}
-
-const initialReports: ReportRow[] = [
-  { id: 3001, reporterName: 'Nguyễn Minh Anh', reportedUserName: 'Seller A', reportedUserId: 12, reportedProductName: 'Design System Kit', reason: 'Sản phẩm không đúng mô tả', createdAt: '2026-09-15', status: 'pending' },
-  { id: 3002, reporterName: 'Đỗ An Nhiên', reportedUserName: 'Seller B', reportedUserId: 18, reportedProductName: 'React Native Pro', reason: 'Nội dung vi phạm bản quyền', createdAt: '2026-09-14', status: 'pending' },
-  { id: 3003, reporterName: 'Lê Linh Đan', reportedUserName: 'Seller C', reportedUserId: 23, reportedProductName: 'Motion Pack 2026', reason: 'Spam quảng cáo', createdAt: '2026-09-12', status: 'resolved' },
-  { id: 3004, reporterName: 'Phạm Cường', reportedUserName: 'Seller D', reportedUserId: 31, reportedProductName: 'SQL Advanced Guide', reason: 'Thông tin gây hiểu nhầm', createdAt: '2026-09-10', status: 'resolved' },
-];
+import { getReports, resolveReport as resolveReportApi, type ReportRecord } from '../../api/reports';
 
 export function ReportListPage() {
-  const [reports, setReports] = useState(initialReports);
+  const [reports, setReports] = useState<ReportRecord[]>([]);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'all' | 'pending' | 'resolved'>('all');
   const [page, setPage] = useState(1);
   const pageSize = 4;
 
+  useEffect(() => { getReports().then((response) => setReports(response.data ?? [])); }, []);
+
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return reports.filter((report) => {
-      const matchesQuery = !normalized || `${report.id} ${report.reporterName} ${report.reportedUserName} ${report.reportedProductName} ${report.reason}`.toLowerCase().includes(normalized);
-      return matchesQuery && (status === 'all' || report.status === status);
+      const text = `${report.id} ${report.reporterName ?? ''} ${report.reportedUserName ?? ''} ${report.reason ?? ''}`.toLowerCase();
+      return (!normalized || text.includes(normalized)) && (status === 'all' || report.status === status);
     });
   }, [reports, query, status]);
 
   const resolveReport = (id: number) => {
-    setReports((items) => items.map((report) => report.id === id ? { ...report, status: 'resolved' } : report));
-    toast.success('Đã đánh dấu report là resolved');
+    resolveReportApi(id).then(() => {
+      setReports((items) => items.map((report) => report.id === id ? { ...report, status: 'resolved' } : report));
+      toast.success('Đã đánh dấu report là resolved');
+    });
   };
-
   return (
     <div className="space-y-6">
       <div>

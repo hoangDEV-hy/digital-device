@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { DataTable } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
-import type { LicenseStatus } from '../../api/licenses';
+import { getLicenses, revokeLicense as revokeLicenseApi, type LicenseRecord, type LicenseStatus } from '../../api/licenses';
 
 interface LicenseRow {
   id: number;
@@ -16,20 +16,15 @@ interface LicenseRow {
   status: LicenseStatus;
 }
 
-const initialLicenses: LicenseRow[] = [
-  { id: 7001, customerName: 'Nguyễn Minh Anh', productName: 'Ebook UX Mastery', orderId: 1001, issuedAt: '2026-09-15 10:26', status: 'active' },
-  { id: 7002, customerName: 'Đỗ An Nhiên', productName: 'SQL Advanced Guide', orderId: 1005, issuedAt: '2026-09-13 08:37', status: 'active' },
-  { id: 7003, customerName: 'Lê Linh Đan', productName: 'Design System Kit', orderId: 1003, issuedAt: '2026-09-14 16:49', status: 'revoked' },
-  { id: 7004, customerName: 'Phạm Cường', productName: 'Motion Pack 2026', orderId: 1004, issuedAt: '2026-09-14 14:03', status: 'active' },
-];
-
 export function LicenseListPage() {
-  const [licenses, setLicenses] = useState(initialLicenses);
+  const [licenses, setLicenses] = useState<LicenseRecord[]>([]);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'all' | LicenseStatus>('all');
   const [page, setPage] = useState(1);
   const [revokeId, setRevokeId] = useState<number | null>(null);
   const pageSize = 4;
+
+  useEffect(() => { getLicenses().then((response) => setLicenses(response.data ?? [])); }, []);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -41,9 +36,10 @@ export function LicenseListPage() {
 
   const revokeLicense = () => {
     if (revokeId === null) return;
-    setLicenses((items) => items.map((license) => license.id === revokeId ? { ...license, status: 'revoked' } : license));
-    toast.success('Đã thu hồi license');
-    setRevokeId(null);
+    revokeLicenseApi(revokeId).then(() => {
+      setLicenses((items) => items.map((license) => license.id === revokeId ? { ...license, status: 'revoked' } : license));
+      toast.success('Đã thu hồi license');
+    }).finally(() => setRevokeId(null));
   };
 
   return (
