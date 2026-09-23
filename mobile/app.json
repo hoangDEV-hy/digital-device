@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Digital Marketplace",
+    "slug": "digital-marketplace-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "digitalmarketplace",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F4F0E8"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
