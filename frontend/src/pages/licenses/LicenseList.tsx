@@ -58,15 +58,14 @@ export function LicenseListPage() {
       </div>
       <DataTable
         columns={[
-          { key: 'id', header: 'License', render: (row) => <span className="font-semibold text-slate-800">#{row.id}</span> },
           { key: 'customerName', header: 'Khách hàng' },
           { key: 'productName', header: 'Sản phẩm' },
-          { key: 'orderId', header: 'Đơn hàng', render: (row) => <span className="text-orange-600">#{row.orderId}</span> },
           { key: 'issuedAt', header: 'Ngày cấp' },
           { key: 'status', header: 'Trạng thái', render: (row) => <StatusBadge label={row.status === 'active' ? 'Active' : 'Revoked'} tone={row.status === 'active' ? 'success' : 'danger'} /> },
           { key: 'actions', header: 'Thao tác', render: (row) => row.status === 'active' ? <button type="button" onClick={() => setRevokeId(row.id)} className="rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50">Thu hồi</button> : <span className="text-xs text-slate-400">Đã thu hồi</span> },
         ]}
         data={filtered.slice((page - 1) * pageSize, page * pageSize)}
+        rowNumberOffset={(page - 1) * pageSize}
       />
       <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />
       <ConfirmDialog open={revokeId !== null} title="Xác nhận thu hồi license" description="License sẽ không còn được sử dụng sau thao tác này. Bạn có chắc chắn muốn tiếp tục?" confirmLabel="Thu hồi" onConfirm={revokeLicense} onCancel={() => setRevokeId(null)} />

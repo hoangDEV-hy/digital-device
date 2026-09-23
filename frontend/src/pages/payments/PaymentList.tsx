@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { DataTable } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
@@ -37,13 +36,10 @@ export function PaymentListPage() {
         <span className="text-sm text-slate-500">{filtered.length} giao dịch</span>
       </div>
       <DataTable columns={[
-        { key: 'id', header: 'Mã thanh toán', render: (row) => <span className="font-semibold text-slate-800">#{row.id}</span> },
-        { key: 'orderId', header: 'Đơn hàng', render: (row) => <Link to={`/orders/${row.orderId}`} className="font-medium text-orange-600">#{row.orderId}</Link> },
         { key: 'method', header: 'Phương thức' },
         { key: 'status', header: 'Trạng thái', render: (row) => <StatusBadge label={statusLabels[row.status]} tone={statusTones[row.status]} /> },
-        { key: 'transactionCode', header: 'Mã giao dịch', render: (row) => row.transactionCode ?? '-' },
         { key: 'paidAt', header: 'Thời gian', render: (row) => row.paidAt ?? '-' },
-      ]} data={paginated} />
+      ]} data={paginated} rowNumberOffset={(page - 1) * pageSize} />
       <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />
     </div>
   );

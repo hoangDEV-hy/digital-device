@@ -12,6 +12,7 @@ interface DataTableProps<T> {
   data: T[];
   loading?: boolean;
   emptyMessage?: string;
+  rowNumberOffset?: number;
 }
 
 export function DataTable<T extends Record<string, unknown>>({
@@ -19,6 +20,7 @@ export function DataTable<T extends Record<string, unknown>>({
   data,
   loading = false,
   emptyMessage = 'Không có dữ liệu',
+  rowNumberOffset = 0,
 }: DataTableProps<T>) {
   if (loading) {
     return (
@@ -39,6 +41,7 @@ export function DataTable<T extends Record<string, unknown>>({
         <table className="min-w-full text-left text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
+              <th className="w-16 px-4 py-3 font-semibold">STT</th>
               {columns.map((column) => (
                 <th key={String(column.key)} className={`px-4 py-3 font-semibold ${column.className || ''}`}>
                   {column.header}
@@ -49,13 +52,14 @@ export function DataTable<T extends Record<string, unknown>>({
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-10 text-center text-slate-500">
+                <td colSpan={columns.length + 1} className="px-4 py-10 text-center text-slate-500">
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               data.map((row, rowIndex) => (
                 <tr key={rowIndex} className="border-t border-slate-200 hover:bg-slate-50">
+                  <td className="px-4 py-3 font-medium text-slate-500">{rowNumberOffset + rowIndex + 1}</td>
                   {columns.map((column) => (
                     <td key={`${rowIndex}-${String(column.key)}`} className={`px-4 py-3 ${column.className || ''}`}>
                       {column.render ? column.render(row) : (row[column.key as keyof T] as ReactNode) || '—'}

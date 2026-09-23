@@ -89,7 +89,6 @@ export function OrderListPage() {
 
       <DataTable
         columns={[
-          { key: 'id', header: 'Mã đơn', render: (row) => <span className="font-semibold text-slate-800">#{row.id}</span> },
           { key: 'customerName', header: 'Khách hàng', render: (row) => <div className="font-medium text-slate-800">{row.customerName ?? '-'}</div> },
           { key: 'totalAmount', header: 'Tổng tiền', render: (row) => <span className="font-medium text-slate-700">{row.totalAmount.toLocaleString('vi-VN')}đ</span> },
           { key: 'status', header: 'Trạng thái', render: (row) => <StatusBadge label={statusLabels[row.status]} tone={statusTones[row.status]} /> },
@@ -98,6 +97,7 @@ export function OrderListPage() {
           { key: 'actions', header: 'Thao tác', render: (row) => <Link to={`/orders/${row.id}`} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">Chi tiết</Link> },
         ]}
         data={paginated}
+        rowNumberOffset={(page - 1) * pageSize}
       />
 
       <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />

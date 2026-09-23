@@ -54,6 +54,7 @@ export function ReviewListPage() {
           { key: 'actions', header: 'Thao tác', render: (row) => <button type="button" onClick={() => setDeleteId(row.id)} className="rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50">Ẩn đánh giá</button> },
         ]}
         data={filtered.slice((page - 1) * pageSize, page * pageSize)}
+        rowNumberOffset={(page - 1) * pageSize}
       />
       <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />
       <ConfirmDialog open={deleteId !== null} title="Xác nhận ẩn đánh giá" description="Đánh giá sẽ được ẩn khỏi danh sách hiển thị. Bạn có chắc chắn muốn tiếp tục?" confirmLabel="Ẩn đánh giá" onConfirm={deleteReview} onCancel={() => setDeleteId(null)} />

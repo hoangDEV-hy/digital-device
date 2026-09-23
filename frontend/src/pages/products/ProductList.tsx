@@ -69,6 +69,7 @@ export function ProductListPage() {
           ) },
         ]}
         data={paginated}
+        rowNumberOffset={(page - 1) * pageSize}
       />
 
       <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />

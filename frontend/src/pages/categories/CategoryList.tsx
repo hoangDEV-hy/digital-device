@@ -116,7 +116,6 @@ export function CategoryListPage() {
 
       <DataTable
         columns={[
-          { key: 'id', header: 'ID', render: (row) => <span className="font-semibold text-slate-700">#{row.id}</span> },
           { key: 'name', header: 'Tên danh mục', render: (row) => <div><div className="font-semibold text-slate-800">{row.name}</div><div className="text-xs text-slate-500">{row.description}</div></div> },
           { key: 'status', header: 'Trạng thái', render: (row) => <StatusBadge label={row.status === 'active' ? 'Đang hiển thị' : 'Tạm ẩn'} tone={row.status === 'active' ? 'success' : 'neutral'} /> },
           { key: 'actions', header: 'Thao tác', render: (row) => (

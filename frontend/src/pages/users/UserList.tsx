@@ -54,7 +54,6 @@ export function UserListPage() {
 
       <DataTable
         columns={[
-          { key: 'id', header: 'Mã', render: (row) => <span className="font-medium text-slate-700">USR-{row.id}</span> },
           { key: 'fullName', header: 'Họ tên', render: (row) => <div><div className="font-semibold text-slate-800">{row.fullName}</div><div className="text-xs text-slate-500">{row.email}</div></div> },
           { key: 'phone', header: 'SĐT' },
           { key: 'role', header: 'Vai trò', render: (row) => <StatusBadge label={row.role === 'admin' ? 'Admin' : 'Customer'} tone={row.role === 'admin' ? 'warning' : 'info'} /> },
@@ -69,6 +68,7 @@ export function UserListPage() {
           ) },
         ]}
         data={paginated}
+        rowNumberOffset={(page - 1) * pageSize}
       />
 
       <Pagination page={page} pageSize={pageSize} total={filteredUsers.length} onPageChange={setPage} />
