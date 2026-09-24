@@ -458,3 +458,25 @@ thêm cho tôi các api về
     Số user mới, số user bị khóa-/api/admin/dashboard/reported-users
     Số sản phẩm đang chờ duyệt (để admin biết việc tồn đọng)
     danh sách users bị report-/api/admin/reports
+    -------------------------------------------------------------------------------------------------
+
+    #update
+     luồng hoạt động:   escrow/deposit
+        muốn bán hàng thì phải ứng tiền làm hợp đồng
+        khi vi phạm thì trừ từ đó( deposit)
+        giữ tiền 7 ngày từ lúc người mua thanh toán thành công, cứ hoàn hàng là hoàn tiền
+
+    tạo api: models: wallets( escrow/deposit)
+        +làm thêm api- rút tiền, quản lý nguồn tiền
+        +api  quản lý nguồn tiền-crud sl tiền
+        +api rút tiền-trừ tiền trong escrow
+        +api đăng kí hợp đồng- trừ tiên, thêm 1 trường vào model users để đánh dấu
+        +api huỷ đăng kí - cộng tiền
+        +"Hoàn hàng" tính từ mốc nào?-lúc người mua yêu cầu
+            ++hoàn hàng admin không cần xử lý
+            ++sau 7 ngày không bị hoàn hàng-cộng tiền escrow
+            ++bị hoàn hàng trước 7 ngày thanh toán-trừ tiền trong escrow
+            ++bị hoàn hàng sau 7 ngày thanh toán-trừ tiền trong deposit
+            ++Trừ âm-Khóa tài khoản?
+            ++Deposit bị trừ xuống dưới mức tối thiểu của hợp đồng-Tự động tạm ngưng quyền bán cho đến khi nạp bù?
+        +cập nhập mọi thông báo phù hợp với từng api vào api thông báo
