@@ -467,14 +467,16 @@ thêm cho tôi các api về
         giữ tiền 7 ngày từ lúc người mua thanh toán thành công, cứ hoàn hàng là hoàn tiền
 
     tạo api: models: wallets( escrow/deposit)
-        +làm thêm api- rút tiền, quản lý nguồn tiền
-        +api  quản lý nguồn tiền-crud sl tiền
-        +api rút tiền-trừ tiền trong escrow
-        +api đăng kí hợp đồng- trừ tiên, thêm 1 trường vào model users để đánh dấu
-        +api huỷ đăng kí - cộng tiền
+        +làm thêm api-quản lý nguồn tiền-GET /api/wallets/me-ok
+        +api  lịch sử giao dịch ví-GET /api/wallets/transactions-thiếu api crud?
+        +Admin xem danh sách ví của toàn hệ thống-GET /api/wallets/admin/list-ok
+        +api  quản lý nguồn tiền-crud sl tiền-?
+        +api rút tiền-trừ tiền trong escrow-GET /api/wallets/me-?-thiếu api nạp
+        +api đăng kí hợp đồng- trừ tiên deposit-?-thiếu api nạp
+        +api huỷ đăng kí - cộng tiền-test sau khi api đăng kí hợp đồng
         +"Hoàn hàng" tính từ mốc nào?-lúc người mua yêu cầu
             ++hoàn hàng admin không cần xử lý
-            ++sau 7 ngày không bị hoàn hàng-cộng tiền escrow
+            ++sau 7 ngày không bị hoàn hàng-cộng tiền escrow-POST /api/wallets/escrow/hold-trừ tiền người mua, cộng escrow người bán, POST /api/wallets/escrow/release-giải phóng escrow-hold trừ âm balence, chưa cộng escrow
             ++bị hoàn hàng trước 7 ngày thanh toán-trừ tiền trong escrow
             ++bị hoàn hàng sau 7 ngày thanh toán-trừ tiền trong deposit
             ++Trừ âm-Khóa tài khoản?

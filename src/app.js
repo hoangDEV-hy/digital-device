@@ -20,6 +20,7 @@ const reportRoutes = require('./routes/reports');
 const notificationRoutes = require('./routes/notifications');
 const reviewRoutes = require('./routes/reviews');
 const orderRoutes = require('./routes/orders');
+const walletRoutes = require('./routes/wallets');
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/wallets', walletRoutes);
 
 app.use(errorHandler);
 

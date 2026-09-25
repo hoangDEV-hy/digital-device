@@ -33,7 +33,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
 
-  User.prototype.validatePassword = async function(password) {
+  User.prototype.validatePassword = async function (password) {
     return bcrypt.compare(password, this.password);
   };
 
