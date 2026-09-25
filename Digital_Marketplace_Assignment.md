@@ -476,7 +476,49 @@ thêm cho tôi các api về
         +api huỷ đăng kí - cộng tiền-test sau khi api đăng kí hợp đồng
         +"Hoàn hàng" tính từ mốc nào?-lúc người mua yêu cầu
             ++hoàn hàng admin không cần xử lý
-            ++sau 7 ngày không bị hoàn hàng-cộng tiền escrow-POST /api/wallets/escrow/hold-trừ tiền người mua, cộng escrow người bán, POST /api/wallets/escrow/release-giải phóng escrow-hold trừ âm balence, chưa cộng escrow
+            ++sau 7 ngày không bị hoàn hàng-cộng tiền escrow-POST /api/wallets/escrow/hold-trừ tiền người mua, cộng escrow người bán, POST /api/wallets/escrow/release-giải phóng escrow-hold trừ âm balence, chưa cộng escrow-cập nhập thanh toán cộng escrow seller, đủ thì trừ balance buyer, balance không đủ thì yêu cầu thanh toán api payment, xử lý trường hợp order có nhiều sellerid
+                                BUYER
+                      │
+                      ▼
+              Create / Pay Order
+                      │
+                      ▼
+              Check Wallet
+                 /        \
+              đủ            thiếu
+              │               │
+              ▼               ▼
+        Hold Escrow        Top-up
+              │               │
+              │          Payment Gateway
+              │               │
+              │               ▼
+              │        Payment success
+              │               │
+              │          Wallet + money
+              │               │
+              │               ▼
+              │          Hold Escrow
+              │               │
+              └───────┬───────┘
+                      ▼
+               Order = paid
+                      │
+                      ▼
+               Create License
+                      │
+                      ▼
+              Money in Escrow
+                      │
+              Product delivered
+                      │
+                      ▼
+                Release Escrow
+                      │
+                      ▼
+              Seller balance += money
+            cho tôi danh sách url tương ứng với các tính năng trên
+
             ++bị hoàn hàng trước 7 ngày thanh toán-trừ tiền trong escrow
             ++bị hoàn hàng sau 7 ngày thanh toán-trừ tiền trong deposit
             ++Trừ âm-Khóa tài khoản?
