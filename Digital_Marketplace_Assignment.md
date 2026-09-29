@@ -122,18 +122,6 @@ Thông tin
 
 API
 
-<<<<<<< HEAD
-- Đăng ký / Đăng nhập/ refest token/logoutout-ok
-- Xem chi tiết-ok
-- Cập nhật profile-ok
-- Đổi mật khẩu-ok
-  -thay đổi mật khẩu tk admin-thêm trường trong env-test?
-- Danh sách người dùng (Admin)-ok
-- Khóa / Mở khóa tài khoản (Admin)-/api/admin/users/{userId}/lock( unlock)-chuyển khoá bằng tên( bảng lựa chọn và tìm kiếm)
-- Cấp quyền đổi ip máy( Admin)-/api/admin/users/{userId}/reset-device-ip-chuyển khoá bằng tên( bảng lựa chọn và tìm kiếm)
-- chuyển từ id thành tên-ok
-- gửi report-ok
-=======
 -   Đăng ký / Đăng nhập/ refest token/logoutout-ok
 -   Xem chi tiết-ok
 -   Cập nhật profile-ok
@@ -144,7 +132,6 @@ API
 -   Cấp quyền đổi ip máy( Admin)-/api/admin/users/{userId}/reset-device-ip-chuyển khoá bằng tên( bảng lựa chọn và tìm kiếm)
 -   chuyển từ id thành tên-ok
 -   gửi report-ok
->>>>>>> main
 
 ---
 
@@ -177,13 +164,8 @@ Thông tin
 
 API
 
-<<<<<<< HEAD
-- Admin: Duyệt / Từ chối sản phẩm trước khi công khai-ok
-- Customer: Xem chi tiết / Danh sách sản phẩm đã duyệt, Thêm / Cập nhật / Xóa sản phẩm của mình, Tổng doanh thu (theo ngày/tháng/tổng)-ok
-=======
 -   Admin: Duyệt / Từ chối sản phẩm trước khi công khai-ok
 -   Customer: Xem chi tiết / Danh sách sản phẩm đã duyệt, Thêm / Cập nhật / Xóa  sản phẩm của mình, Tổng doanh thu (theo ngày/tháng/tổng)-ok
->>>>>>> main
 
 ---
 
@@ -224,19 +206,11 @@ Thông tin
 
 Yêu cầu
 
-<<<<<<< HEAD
-- Thiết kế API tích hợp cổng thanh toán (VNPay/Momo), có thể giả
-  lập (mock) callback/IPN cho môi trường fresher
-- Khi thanh toán thành công → tự động sinh License cho từng sản
-  phẩm trong đơn hàng
-  -thiếu api xác thực thanh toán thành công thất bại
-=======
 -   Thiết kế API tích hợp cổng thanh toán (VNPay/Momo), có thể giả
     lập (mock) callback/IPN cho môi trường fresher
 -   Khi thanh toán thành công → tự động sinh License cho từng sản
     phẩm trong đơn hàng
 -thiếu api xác thực thanh toán thành công thất bại
->>>>>>> main
 
 ---
 
@@ -264,16 +238,9 @@ API
 ---
 
 ## 4.10 Đánh giá (Reviews) -ok
-<<<<<<< HEAD
-
-- Customer chỉ được đánh giá sản phẩm đã mua (đã có License), có thể xem sản phẩm của mình bán
-- Thông tin: điểm số (rating), nội dung, người đánh giá, sản phẩm
-- Admin có thể gỡ review vi phạm
-=======
 -   Customer chỉ được đánh giá sản phẩm đã mua (đã có License), có thể xem sản phẩm của mình bán
 -   Thông tin: điểm số (rating), nội dung, người đánh giá, sản phẩm
 -   Admin có thể gỡ review vi phạm
->>>>>>> main
 
 ---
 
@@ -298,14 +265,8 @@ API
 ---
 
 ## 4.12 Truy cập nội dung sản phẩm số--ok
-<<<<<<< HEAD
-
-/api/content/signed/{productId}-lấy token cho stream
-{ url: `/api/content/stream/${token}` }
-=======
 /api/content/signed/{productId}-lấy token cho stream
     { url: `/api/content/stream/${token}` }
->>>>>>> main
 /api/content/stream/{token}--phát nội dung
 Chức năng đặc trưng: xem sách (ebook), xem video khóa học...
 
@@ -469,25 +430,6 @@ Yêu cầu
   "data": {}
 }
 ```
-<<<<<<< HEAD
-
----
-
-# thông báo -ok
-
-## Không có thông báo (email/push) cho các sự kiện: sản phẩm được duyệt, thanh toán thành công, review mới...
-
-# dashboard-ok
-
--admin (crud)
-Số user mới, số user bị khóa
-Số sản phẩm đang chờ duyệt (để admin biết việc tồn đọng)
-danh sách users bị report
-
-update
-thêm cho tôi các api về
-+Cập nhật profile; PUT /api/users/me-ok upload_avatar: /api/users/me/avatar-ok
-=======
 ------------------------------------------------------------------------
 # thông báo -ok
 Không có thông báo (email/push) cho các sự kiện: sản phẩm được duyệt, thanh toán thành công, review mới...
@@ -503,21 +445,10 @@ Không có thông báo (email/push) cho các sự kiện: sản phẩm được 
 update
 thêm cho tôi các api về 
 +Cập nhật profile; PUT /api/users/me-ok  upload_avatar: /api/users/me/avatar-ok
->>>>>>> main
 +Danh sách người dùng (Admin): /api/admin/users-ok
 +gửi report( báo cáo người dùng khác)-POST /api/reports-ok, xem danh sách reports(admin)-GET /api/reports-ok
 +CRUD (chỉ Admin được tạo/sửa/xóa danh mục)-ok hiển thị danh mục sản phẩm-/api/categories-ok
 +Admin: Duyệt / Từ chối sản phẩm trước khi công khai-POST /api/admin/products/{productId}/approve-ok
-<<<<<<< HEAD
-+Customer: Xem chi tiết GET /api/products/{productId}-OK / Danh sách sản phẩm đã duyệt/ SẢN PHẨM ĐÃ ĐĂNG- GET /api/products/mine-OK, Thêm / Cập nhật /-OK, Xóa sản phẩm của mình-ok, Tổng doanh thu (theo ngày/tháng/tổng)-chưa test do chưa có đơn hàng
-+thêm api lấy thông báo (email/push) cho các sự kiện: sản phẩm được duyệt, thanh toán thành công, review mới...-OK
-+thêm api phục vụ cho
-dashboard
-admin (crud)-tổng quan 3 thông số-/api/admin/dashboard/summary-ok
-Số user mới, số user bị khóa-/api/admin/dashboard/reported-users
-Số sản phẩm đang chờ duyệt (để admin biết việc tồn đọng)
-danh sách users bị report-/api/admin/reports
-=======
 +Customer: Xem chi tiết GET /api/products/{productId}-OK / Danh sách sản phẩm đã duyệt/ SẢN PHẨM ĐÃ ĐĂNG- GET  /api/products/mine-OK, Thêm / Cập nhật /-OK, Xóa  sản phẩm của mình-ok, Tổng doanh thu (theo ngày/tháng/tổng)-chưa test do chưa có đơn hàng
 +thêm api lấy thông báo (email/push) cho các sự kiện: sản phẩm được duyệt, thanh toán thành công, review mới...-OK
 +thêm api phục vụ cho 
@@ -740,4 +671,3 @@ danh sách users bị report-/api/admin/reports
     IPN B success             |   600.000 |   500.000  |   300.000     | 1.000.000
     Release B                 |   600.000 |   770.000  |       0       | 1.000.000
     Withdraw 200k             |   600.000 |   570.000  |       0       | 1.000.000
->>>>>>> main
