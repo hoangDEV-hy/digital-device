@@ -1,4 +1,124 @@
-const { Order, OrderItem, Product, User, Cart, CartItem } = require('../models');
+const { Order, OrderItem, Product, User, Cart, CartItem, Wallet, WalletTransaction, Notification } = require('../models');
+const { Op } = require('sequelize');
+
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const toMoney = (value) => Number(parseFloat(value || 0).toFixed(2));
+
+const ensureWallet = async (userId) => {
+  let wallet = await Wallet.findOne({ where: { userId } });
+  if (!wallet) {
+    wallet = await Wallet.create({
+      userId,
+      balance: 0,
+      escrowBalance: 0,
+      depositBalance: 0,
+      contractStatus: 'inactive',
+      minimumDeposit: 100000,
+    });
+  }
+  return wallet;
+};
+
+const getSellerBreakdown = (orderItems = []) => {
+  const totals = {};
+  for (const item of orderItems) {
+    const product = item.Product || item.product || null;
+    const sellerId = product?.sellerId || item.sellerId;
+    if (!sellerId) continue;
+    const amount = toMoney((Number(item.price || 0) * Number(item.quantity || 1)));
+    totals[sellerId] = toMoney((totals[sellerId] || 0) + amount);
+  }
+  return totals;
+};
+
+exports.releaseEscrowForEligibleOrders = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - SEVEN_DAYS_MS);
+
+    const orders = await Order.findAll({
+      where: {
+        status: 'paid',
+        escrowReleased: false,
+        createdAt: { [Op.lte]: cutoff },
+      },
+      include: [{
+        model: OrderItem,
+        include: [{ model: Product, attributes: ['id', 'sellerId', 'title'] }],
+      }],
+      order: [['createdAt', 'ASC']],
+    });
+
+    if (!orders.length) {
+      return res.json({ success: true, message: 'No eligible orders for escrow release', data: { releasedCount: 0, totalReleased: 0, orders: [] } });
+    }
+
+    let totalReleased = 0;
+    const releasedOrders = [];
+
+    for (const order of orders) {
+      const sellerTotals = getSellerBreakdown(order.OrderItems || []);
+      const perSeller = [];
+
+      for (const [sellerId, orderAmount] of Object.entries(sellerTotals)) {
+        const wallet = await ensureWallet(sellerId);
+        const releaseAmount = Math.min(toMoney(orderAmount), toMoney(wallet.escrowBalance || 0));
+
+        if (releaseAmount <= 0) {
+          perSeller.push({ sellerId, releaseAmount: 0, escrowBalance: toMoney(wallet.escrowBalance || 0), note: 'No escrow available' });
+          continue;
+        }
+
+        wallet.escrowBalance = toMoney((wallet.escrowBalance || 0) - releaseAmount);
+        wallet.balance = toMoney((wallet.balance || 0) + releaseAmount);
+        await wallet.save();
+
+        await WalletTransaction.create({
+          walletId: wallet.id,
+          userId: sellerId,
+          type: 'escrow_release',
+          amount: releaseAmount,
+          relatedOrderId: order.id,
+          note: `Escrow released after 7 days for order ${order.id}`,
+          status: 'success',
+        });
+
+        await Notification.create({
+          userId: sellerId,
+          type: 'escrow_released',
+          channel: 'email',
+          payload: { orderId: order.id, amount: releaseAmount },
+        });
+
+        totalReleased += releaseAmount;
+        perSeller.push({ sellerId, releaseAmount, escrowBalance: wallet.escrowBalance });
+      }
+
+      order.escrowReleased = true;
+      order.releasedAt = new Date();
+      await order.save();
+
+      releasedOrders.push({
+        orderId: order.id,
+        userId: order.userId,
+        releasedAt: order.releasedAt,
+        perSeller,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Escrow released for eligible orders',
+      data: {
+        releasedCount: releasedOrders.length,
+        totalReleased,
+        orders: releasedOrders,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 exports.checkoutFromCart = async (req, res, next) => {
   try {

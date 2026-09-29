@@ -517,10 +517,17 @@ thêm cho tôi các api về
                       │
                       ▼
               Seller balance += money
+
+              seed data-> chạy hết các api trong nhóm swagger Wallets có trong hệ thống. trả về kết quả của từng api-khó mô tả nhưng ai không tự động thêm để chạy thành công trả về có dữ liệu liên quan đến nhau
+
             cho tôi danh sách url tương ứng với các tính năng trên
+            thêm validate phải ký hợp đồng mới đăng sản phẩm được
 
             ++bị hoàn hàng trước 7 ngày thanh toán-trừ tiền trong escrow
             ++bị hoàn hàng sau 7 ngày thanh toán-trừ tiền trong deposit
             ++Trừ âm-Khóa tài khoản?
             ++Deposit bị trừ xuống dưới mức tối thiểu của hợp đồng-Tự động tạm ngưng quyền bán cho đến khi nạp bù?
         +cập nhập mọi thông báo phù hợp với từng api vào api thông báo
+
+        ##chưa đăng kí vẫn bán được, test luông hoạt động ví( )
+        --->test luồng hoat động của ví, thiếu api, thiếu api để test, api lỗi
