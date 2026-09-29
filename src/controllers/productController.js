@@ -6,6 +6,17 @@ const { Op } = require('sequelize');
 exports.create = async (req, res, next) => {
   try {
     const { title, description, price, categoryId, type, fileUrl, thumbnail } = req.body;
+    const wallet = await models.Wallet.findOne({ where: { userId: req.user.id } });
+    const depositBalance = Number(wallet?.depositBalance || 0);
+    const minimumDeposit = Number(wallet?.minimumDeposit || 100000);
+
+    if (!wallet || wallet.contractStatus !== 'registered' || depositBalance < minimumDeposit) {
+      return res.status(403).json({
+        success: false,
+        message: 'Seller contract is not active. Please deposit and register the seller contract before creating products.',
+      });
+    }
+
     const product = await Product.create({ title, description, price, categoryId, type, fileUrl, thumbnail, visibility: 'inactive', reviewStatus: 'pending', sellerId: req.user.id });
     res.json({ success: true, data: product });
   } catch (err) { next(err); }

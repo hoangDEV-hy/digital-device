@@ -40,6 +40,30 @@ router.get('/transactions', auth.required, walletController.listTransactions);
 
 /**
  * @swagger
+ * /api/wallets/deposit:
+ *   post:
+ *     tags: [Wallets]
+ *     summary: Deposit funds into the current user's wallet
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [amount]
+ *             properties:
+ *               amount:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Deposit successful
+ */
+router.post('/deposit', auth.required, walletController.depositFunds);
+
+/**
+ * @swagger
  * /api/wallets/register-seller-contract:
  *   post:
  *     tags: [Wallets]
@@ -176,7 +200,7 @@ router.post('/escrow/hold', auth.required, walletController.holdEscrowOnSale);
  *       200:
  *         description: Escrow released
  */
-router.post('/escrow/release', auth.required, walletController.releaseEscrowAfterSevenDays);
+router.post('/escrow/release', auth.required, role.requireAdmin, walletController.releaseEscrowAfterSevenDays);
 
 /**
  * @swagger

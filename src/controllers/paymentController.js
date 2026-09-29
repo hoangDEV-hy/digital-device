@@ -96,7 +96,7 @@ const finalizeSuccessfulOrderPayment = async (order, payment, { topUpBuyerWallet
     throw new Error('Buyer balance insufficient to finalize order payment');
   }
 
-  buyerWallet.balance = toMoney((buyerWallet.balance || 0) - orderTotal);
+  buyerWallet.balance = toMoney((Number(buyerWallet.balance || 0) - orderTotal));
   await buyerWallet.save();
   await WalletTransaction.create({
     walletId: buyerWallet.id,
@@ -113,7 +113,7 @@ const finalizeSuccessfulOrderPayment = async (order, payment, { topUpBuyerWallet
 
   for (const [sellerId, amount] of Object.entries(sellerTotals)) {
     const sellerWallet = await ensureWallet(sellerId);
-    sellerWallet.escrowBalance = toMoney((sellerWallet.escrowBalance || 0) + amount);
+    sellerWallet.escrowBalance = toMoney((Number(sellerWallet.escrowBalance || 0) + amount));
     await sellerWallet.save();
     await WalletTransaction.create({
       walletId: sellerWallet.id,
@@ -193,6 +193,12 @@ exports.mockIpn = async (req, res, next) => {
 
     let payment = await Payment.findOne({ where: { orderId } });
     if (!payment) payment = await Payment.create({ orderId, method: 'mock', status: 'pending' });
+
+    if (order.status === 'paid' && payment.status === 'success') {
+      payment.providerTxId = providerTxId || payment.providerTxId;
+      await payment.save();
+      return res.send('OK');
+    }
 
     payment.status = status || payment.status;
     payment.providerTxId = providerTxId || payment.providerTxId;

@@ -468,11 +468,11 @@ thêm cho tôi các api về
 
     tạo api: models: wallets( escrow/deposit)
         +làm thêm api-quản lý nguồn tiền-GET /api/wallets/me-ok
-        +api  lịch sử giao dịch ví-GET /api/wallets/transactions-thiếu api crud?
+        +api  lịch sử giao dịch ví-GET /api/wallets/transactions-thiếu api crud?-tự thêm và không thể xoá-ok
         +Admin xem danh sách ví của toàn hệ thống-GET /api/wallets/admin/list-ok
-        +api  quản lý nguồn tiền-crud sl tiền-?
-        +api rút tiền-trừ tiền trong escrow-GET /api/wallets/me-?-thiếu api nạp
-        +api đăng kí hợp đồng- trừ tiên deposit-?-thiếu api nạp
+        +api  quản lý nguồn tiền-crud sl tiền-?thiếu api nạp tiền để test
+        +api rút tiền-trừ tiền trong escrow-GET /api/wallets/me-?-thiếu api nạp tiền
+        +api đăng kí hợp đồng- trừ tiên deposit-?-thiếu api nạp tiền
         +api huỷ đăng kí - cộng tiền-test sau khi api đăng kí hợp đồng
         +"Hoàn hàng" tính từ mốc nào?-lúc người mua yêu cầu
             ++hoàn hàng admin không cần xử lý
@@ -531,3 +531,144 @@ thêm cho tôi các api về
 
         ##chưa đăng kí vẫn bán được, test luông hoạt động ví( )
         --->test luồng hoat động của ví, thiếu api, thiếu api để test, api lỗi
+
+
+        WALLET TEST
+│
+├─ 0. ĐĂNG NHẬP
+│   ├─ admin/seller/buyer login → 200, có accessToken (lưu adminToken, sellerToken, buyerToken)
+│   ├─ Sai mật khẩu → 401
+│   └─ Gọi API ví không token → 401
+│
+├─ 1. SỐ DƯ GỐC
+│   ├─ GET /wallets/me (seller) → 200 {balance:0, escrowBalance:0, depositBalance:0, status:"active"}
+│   └─ GET /wallets/me (buyer)  → 200 {balance:0, escrowBalance:0, depositBalance:0}
+│
+├─ 2. SELLER: NẠP VÍ + KÝ HỢP ĐỒNG
+│   ├─ 2.1 Case lỗi (chạy trước)
+│   │   ├─ register-seller-contract {amount:1000000}, ví 0đ → 400 "Insufficient balance" (ví không đổi)
+│   │   └─ register-seller-contract {amount:100000} → 400 "Amount is below minimum deposit"
+│   ├─ 2.2 Nạp ví seller
+│   │   ├─ Lỗi: amount = 0 / -1 / "abc" / thiếu amount → 400 validation
+│   │   ├─ Lỗi: dưới mức nạp tối thiểu (nếu có) → 400
+│   │   ├─ Lỗi: không token → 401
+│   │   └─ OK: POST /wallets/deposit {amount:1500000} → 200 {balance:1500000}
+│   │       └─ Kiểm tra: /transactions có 1 dòng loại nạp ví +1.500.000 "completed"
+│   ├─ 2.3 Chưa ký hợp đồng mà tạo sản phẩm (đủ tiền, chưa ký)
+│   │   └─ POST /products → 403 (chưa có hợp đồng)
+│   ├─ 2.4 Ký hợp đồng thành công
+│   │   └─ {amount:1000000} → 200 {contractSigned:true, depositBalance:1000000, balance:500000}
+│   ├─ 2.5 Ký lần 2 → 400/409 "Contract already registered" (số dư không đổi)
+│   ├─ 2.6 Buyer gọi register-seller-contract → 403
+│   └─ 2.7 Đối chiếu
+│       ├─ GET /wallets/me → balance 500000, depositBalance 1000000
+│       └─ GET /transactions → thứ tự: nạp ví +1.500.000, cọc 1.000.000
+│
+├─ 3. SẢN PHẨM
+│   ├─ Seller tạo product A (300000) → 201 {status:"pending"}
+│   ├─ Seller tạo product B (300000) → 201 {status:"pending"}
+│   ├─ Buyer duyệt product → 403
+│   └─ Admin approve A, B → 200 {status:"approved"}
+│
+├─ 4. BUYER: THANH TOÁN ĐƠN A (đơn 300.000)
+├─ Nạp ví buyer 200.000 → balance 200.000
+├─ Checkout → orderA "pending"
+├─ payments/create {orderId:orderA}, thiếu tiền
+│   └─ 200 {status:"pending", requiredAmount:300000, redirectUrl:"/api/payments/mock-ipn?..."}
+│       Kiểm tra: buyer 200.000, order "pending", chưa license, seller escrow 0
+├─ Nạp thêm 700.000 → balance 900.000
+├─ payments/create lần 2, đủ tiền
+│   └─ 200 "Order paid successfully using buyer wallet balance", status "success"
+│       Kiểm tra: buyer 600.000; seller escrow 300.000 (tx escrow_hold);
+│       order "paid"; my-library có 1 license; 2 notification (buyer email, seller in-app)
+├─ payments/create lần 3 → 200 "Order already paid" (không trừ tiền thêm)
+├─ IPN success TXN_A_001 sau khi đã paid → 200 "OK", KHÔNG đổi số dư/license/escrow
+├─ IPN failed sau khi đã paid → hiện tại BUG (payment.status thành "failed"); kỳ vọng đúng: bỏ qua
+├─ Nhánh IPN-only (dùng đơn khác, buyer chưa đủ tiền)
+│   ├─ IPN failed → 200 "OK", payment "failed", order "pending", số dư không đổi
+│   └─ IPN success → 200 "OK", buyer được tự nạp phần thiếu (tx deposit) rồi trả: ghi nhận là rủi ro #1
+├─ IPN orderId không tồn tại → 404 text "Order not found"
+├─ createPayment orderId không tồn tại → 404 JSON
+├─ Bảo mật: user khác gọi payments/create cho đơn của buyer → kỳ vọng 403 (code hiện không chặn)
+├─ Bảo mật: gọi IPN không token → kỳ vọng 401/403 (code hiện cho qua)
+└─ Đồng thời: 2 request create (hoặc create + IPN) cùng đơn → kỳ vọng chỉ trừ 1 lần
+│
+├─ 5. ESCROW HOLD (chọn 1 nhánh theo code)
+│   ├─ Nhánh auto: chỉ cần kiểm tra escrowBalance ở bước 4, bỏ các case gọi tay
+│   └─ Nhánh gọi tay: POST /wallets/escrow/hold {orderId, amount:300000}
+│       ├─ Đúng quyền → 200 {status:"HELD", releaseAt: now+7d}
+│       ├─ Gọi lần 2 cùng đơn → 400/409
+│       ├─ Amount khác giá đơn → 400
+│       ├─ User không liên quan đơn → 403
+│       └─ Đơn chưa thanh toán → 400
+│
+├─ 6. ĐƠN A: REFUND TRƯỚC 7 NGÀY
+│   ├─ Buyer khác (không phải chủ đơn) refund → 403
+│   ├─ Refund đơn không tồn tại {orderId:"000"} → 404
+│   ├─ Buyer refund {orderId:orderA, reason:"Không đúng mô tả"} → 200 {refundedAmount:300000, escrowStatus:"REFUNDED"}
+│   ├─ Kiểm tra
+│   │   ├─ Buyer balance 900000 (+300000)
+│   │   ├─ Seller escrowBalance 0, balance vẫn 500000
+│   │   ├─ /transactions buyer có REFUND +300000
+│   │   └─ /content/my-library → không còn product A
+│   ├─ Refund lần 2 cùng đơn A → 400 "Already refunded"
+│   └─ Release đơn A sau khi refund → 400
+│
+├─ 7. ĐƠN B: THANH TOÁN + HOLD
+│   ├─ Cart add B → checkout → {orderB, total:300000}
+│   ├─ payments/create → IPN success (TXN_B_001) → buyer balance 600000
+│   ├─ Seller: escrowBalance 300000, balance 500000, depositBalance 1000000
+│   ├─ Release khi chưa đủ 7 ngày (Admin) → 400 "Escrow not yet releasable"
+│   ├─ Buyer/Seller gọi release → 403 (nếu chỉ admin/job được phép)
+│   └─ Rút vượt phần khả dụng (seller có escrow + cọc đang tồn tại)
+│       ├─ withdraw {amount:800000} (balance+escrow) → 400
+│       └─ withdraw {amount:1500000} (balance+cọc) → 400 (escrow và cọc không rút được)
+│
+├─ 8. GIẢ LẬP QUÁ 7 NGÀY (DB: releaseAt = now-8d, hoặc config/mock clock)
+│   ├─ Refund đơn B khi escrow còn HELD nhưng quá hạn → 400 "Refund period has expired"
+│   ├─ Admin release {orderId:orderB} → 200 {amount:300000, platformFee:30000, sellerReceived:270000, status:"RELEASED"}
+│   │   └─ Kiểm tra: seller balance 770000, escrowBalance 0, có ESCROW_RELEASE 270000, có phí 30000
+│   ├─ Release lần 2 → 400 "Already released"
+│   └─ Refund đơn B sau khi đã release → 400 (buyer balance vẫn 600000, order không đổi trạng thái)
+│
+├─ 9. RÚT TIỀN (seller, balance 770000)
+│   ├─ Dưới mức tối thiểu {amount:10000} → 400 "below minimum withdrawal"
+│   ├─ Amount 0 / âm / thiếu → 400 validation
+│   ├─ Vượt số dư {amount:900000} → 400 "Insufficient balance"
+│   ├─ Thiếu thông tin ngân hàng → 400
+│   ├─ Buyer rút (không phải seller) → theo nghiệp vụ: 200 nếu có tiền, hoặc 403 nếu chỉ seller
+│   ├─ OK: {amount:200000, bankName, bankAccount, accountHolder} → 200 {status:"PENDING"}
+│   │   └─ Kiểm tra: balance 570000, có transaction WITHDRAW 200000
+│   └─ Race: 2 lệnh withdraw 500000 gửi đồng thời (balance 570000)
+│       └─ Đúng 1 lệnh 200, lệnh còn lại 400; balance không âm
+│
+├─ 10. ADMIN QUẢN LÝ VÍ
+│   ├─ GET /wallets/admin/list (admin) → 200, danh sách đủ các ví
+│   ├─ Buyer/Seller gọi admin/list → 403
+│   ├─ Suspend {reason:"Bị report nhiều lần"} (admin) → 200 {status:"suspended"}
+│   ├─ Buyer/Seller gọi suspend → 403; suspend userId không tồn tại → 404
+│   ├─ Hiệu ứng suspend (seller)
+│   │   ├─ withdraw → 403 "Wallet is suspended"
+│   │   ├─ POST /products → 403 "Wallet is suspended"
+│   │   └─ Nạp ví / nhận release → theo quy định (ghi rõ 200 hay 403)
+│   └─ Resume (admin) → 200 {status:"active"} → withdraw {amount:100000} → 200
+│
+├─ 11. ĐỐI SOÁ CUỐI
+│   ├─ Tổng nạp ví = 1.500.000 (seller) + 900.000 (buyer) = 2.400.000
+│   ├─ Σ balance + Σ escrow + Σ cọc + Σ phí + Σ đã rút
+│   │   = (600.000 buyer + 570.000 seller) + 0 + 1.000.000 + 30.000 + 200.000 = 2.400.000 ✔
+│   │   (nếu đã rút thêm 100.000 ở bước resume thì seller còn 470.000, tổng rút 300.000, vẫn khớp)
+│   ├─ Σ transaction từng ví = số dư hiện tại của ví đó
+│   ├─ Không có: license trùng, refund trùng, release trùng
+│   └─ Order A "refunded", order B "released/completed"
+│
+└─ 12. BẢNG SỐ DƯ KỲ VỌNG SAU TỪNG BƯỚC (để QA đối chiếu nhanh)
+    Bước                      | Buyer bal | Seller bal | Seller escrow | Seller cọc
+    Sau nạp seller            |     0     | 1.500.000  |       0       |     0
+    Sau ký hợp đồng           |     0     |   500.000  |       0       | 1.000.000
+    Buyer nạp 200k, 700k      |   900.000 |   500.000  |       0       | 1.000.000
+    IPN A success             |   600.000 |   500.000  |   300.000     | 1.000.000
+    Refund A                  |   900.000 |   500.000  |       0       | 1.000.000
+    IPN B success             |   600.000 |   500.000  |   300.000     | 1.000.000
+    Release B                 |   600.000 |   770.000  |       0       | 1.000.000
+    Withdraw 200k             |   600.000 |   570.000  |       0       | 1.000.000

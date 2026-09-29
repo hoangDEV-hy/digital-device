@@ -65,6 +65,6 @@ router.get('/all', auth.required, role.requireAdmin, orderController.getAllOrder
  *       200:
  *         description: Escrow batch release result
  */
-router.post('/release-escrow', auth.required, orderController.releaseEscrowForEligibleOrders);
+router.post('/release-escrow', auth.required, role.requireAdmin, orderController.releaseEscrowForEligibleOrders);
 
 module.exports = router;
