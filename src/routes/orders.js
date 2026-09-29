@@ -53,8 +53,6 @@ router.get('/mine-products', auth.required, orderController.getOrdersForMyProduc
  */
 router.get('/all', auth.required, role.requireAdmin, orderController.getAllOrders);
 
-<<<<<<< HEAD
-=======
 /**
  * @swagger
  * /api/orders/release-escrow:
@@ -69,5 +67,4 @@ router.get('/all', auth.required, role.requireAdmin, orderController.getAllOrder
  */
 router.post('/release-escrow', auth.required, role.requireAdmin, orderController.releaseEscrowForEligibleOrders);
 
->>>>>>> main
 module.exports = router;

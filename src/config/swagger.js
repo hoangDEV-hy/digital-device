@@ -130,8 +130,6 @@ const options = {
             createdAt: { type: 'string', format: 'date-time' }
           }
         },
-<<<<<<< HEAD
-=======
         Wallet: {
           type: 'object',
           properties: {
@@ -160,7 +158,6 @@ const options = {
             createdAt: { type: 'string', format: 'date-time' }
           }
         },
->>>>>>> main
         PaginatedUsers: {
           type: 'object',
           properties: {

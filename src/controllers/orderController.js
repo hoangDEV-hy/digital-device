@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-const { Order, OrderItem, Product, User, Cart, CartItem } = require('../models');
-=======
 const { Order, OrderItem, Product, User, Cart, CartItem, Wallet, WalletTransaction, Notification } = require('../models');
 const { Op } = require('sequelize');
 
@@ -122,7 +119,6 @@ exports.releaseEscrowForEligibleOrders = async (req, res, next) => {
     next(err);
   }
 };
->>>>>>> main
 
 exports.checkoutFromCart = async (req, res, next) => {
   try {

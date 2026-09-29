@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-const { User, Product, Payment, License, Review } = require('../models');
-=======
 const { User, Product } = require('../models');
->>>>>>> main
 const { Op } = require('sequelize');
 
 exports.listUsers = async (req, res, next) => {

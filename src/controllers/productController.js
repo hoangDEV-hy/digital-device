@@ -6,8 +6,6 @@ const { Op } = require('sequelize');
 exports.create = async (req, res, next) => {
   try {
     const { title, description, price, categoryId, type, fileUrl, thumbnail } = req.body;
-<<<<<<< HEAD
-=======
     const wallet = await models.Wallet.findOne({ where: { userId: req.user.id } });
     const depositBalance = Number(wallet?.depositBalance || 0);
     const minimumDeposit = Number(wallet?.minimumDeposit || 100000);
@@ -19,7 +17,6 @@ exports.create = async (req, res, next) => {
       });
     }
 
->>>>>>> main
     const product = await Product.create({ title, description, price, categoryId, type, fileUrl, thumbnail, visibility: 'inactive', reviewStatus: 'pending', sellerId: req.user.id });
     res.json({ success: true, data: product });
   } catch (err) { next(err); }
@@ -31,11 +28,7 @@ exports.update = async (req, res, next) => {
     const product = await Product.findByPk(productId);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
     if (product.sellerId !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Forbidden' });
-<<<<<<< HEAD
-    const fields = ['title','description','price','categoryId','type','fileUrl','thumbnail','visibility'];
-=======
     const fields = ['title', 'description', 'price', 'categoryId', 'type', 'fileUrl', 'thumbnail', 'visibility'];
->>>>>>> main
     fields.forEach(f => { if (req.body[f] !== undefined) product[f] = req.body[f]; });
     await product.save();
     res.json({ success: true, data: product });
@@ -191,11 +184,7 @@ exports.getMyProducts = async (req, res, next) => {
 exports.getDetails = async (req, res, next) => {
   try {
     const { productId } = req.params;
-<<<<<<< HEAD
-    const product = await Product.findByPk(productId, { include: [{ model: Category }, { model: User, as: 'seller', attributes: ['id','fullName'] }] });
-=======
     const product = await Product.findByPk(productId, { include: [{ model: Category }, { model: User, as: 'seller', attributes: ['id', 'fullName'] }] });
->>>>>>> main
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
     if (product.reviewStatus !== 'approved' && req.user?.role !== 'admin' && product.sellerId !== req.user?.id) return res.status(403).json({ success: false, message: 'Forbidden' });
     res.json({ success: true, data: product });

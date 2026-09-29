@@ -204,20 +204,6 @@ exports.mockIpn = async (req, res, next) => {
     if (order.status === 'paid' && payment.status === 'success') {
       payment.providerTxId = providerTxId || payment.providerTxId;
       await payment.save();
-<<<<<<< HEAD
-      order.status = 'paid';
-      await order.save();
-      // Generate licenses for each order item
-      for (const item of await OrderItem.findAll({ where: { orderId } })) {
-        await License.create({ userId: order.userId, productId: item.productId, orderId: order.id });
-          // create notification to seller and buyer
-          const { Notification } = require('../models');
-          await Notification.create({ userId: order.userId, type: 'payment_success', channel: 'email', payload: { orderId: order.id } });
-          const product = await Product.findByPk(item.productId);
-          if (product) await Notification.create({ userId: product.sellerId, type: 'product_sold', channel: 'in-app', payload: { orderId: order.id, productId: product.id } });
-      }
-=======
->>>>>>> main
       return res.send('OK');
     }
 

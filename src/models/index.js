@@ -14,11 +14,8 @@ const CartItem = require('./cartItem')(sequelize, Sequelize.DataTypes);
 const Report = require('./report')(sequelize, Sequelize.DataTypes);
 const Notification = require('./notification')(sequelize, Sequelize.DataTypes);
 const Review = require('./review')(sequelize, Sequelize.DataTypes);
-<<<<<<< HEAD
-=======
 const Wallet = require('./wallet')(sequelize, Sequelize.DataTypes);
 const WalletTransaction = require('./walletTransaction')(sequelize, Sequelize.DataTypes);
->>>>>>> main
 
 User.hasMany(Product, { foreignKey: 'sellerId' });
 Product.belongsTo(User, { as: 'seller', foreignKey: 'sellerId' });
@@ -54,13 +51,10 @@ User.hasMany(Review, { foreignKey: 'userId' });
 Review.belongsTo(User, { as: 'user', foreignKey: 'userId' });
 Product.hasMany(Review, { foreignKey: 'productId' });
 Review.belongsTo(Product, { foreignKey: 'productId' });
-<<<<<<< HEAD
-=======
 User.hasOne(Wallet, { foreignKey: 'userId' });
 Wallet.belongsTo(User, { foreignKey: 'userId' });
 Wallet.hasMany(WalletTransaction, { foreignKey: 'walletId' });
 WalletTransaction.belongsTo(Wallet, { foreignKey: 'walletId' });
->>>>>>> main
 
 module.exports = {
   sequelize,
@@ -78,9 +72,6 @@ module.exports = {
   Report,
   Notification,
   Review,
-<<<<<<< HEAD
-=======
   Wallet,
   WalletTransaction,
->>>>>>> main
 };

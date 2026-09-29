@@ -23,12 +23,8 @@ async function start() {
     await sequelize.authenticate();
     const enableSync = process.env.DB_SYNC ? process.env.DB_SYNC === 'true' : (process.env.NODE_ENV !== 'production');
     if (enableSync) {
-<<<<<<< HEAD
-      await sequelize.sync();
-=======
       await ensureOrderColumns();
       await sequelize.sync({ alter: true });
->>>>>>> main
       console.log('Database connected and synced');
     } else {
       console.log('Database connected (sync disabled by DB_SYNC=false)');
