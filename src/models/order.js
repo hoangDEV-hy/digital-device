@@ -6,6 +6,8 @@ module.exports = (sequelize, DataTypes) => {
     userId: { type: DataTypes.UUID, allowNull: false },
     totalAmount: { type: DataTypes.DECIMAL(10,2), allowNull: false, defaultValue: 0.0 },
     status: { type: DataTypes.ENUM('pending','paid','failed','cancelled'), defaultValue: 'pending' },
+    escrowReleased: { type: DataTypes.BOOLEAN, defaultValue: false },
+    releasedAt: { type: DataTypes.DATE, allowNull: true },
   });
 
   return Order;

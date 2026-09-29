@@ -53,4 +53,21 @@ router.get('/mine-products', auth.required, orderController.getOrdersForMyProduc
  */
 router.get('/all', auth.required, role.requireAdmin, orderController.getAllOrders);
 
+<<<<<<< HEAD
+=======
+/**
+ * @swagger
+ * /api/orders/release-escrow:
+ *   post:
+ *     tags: [Orders]
+ *     summary: Release escrow automatically for all eligible paid orders older than 7 days
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Escrow batch release result
+ */
+router.post('/release-escrow', auth.required, role.requireAdmin, orderController.releaseEscrowForEligibleOrders);
+
+>>>>>>> main
 module.exports = router;

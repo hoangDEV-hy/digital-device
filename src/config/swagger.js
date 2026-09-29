@@ -130,6 +130,37 @@ const options = {
             createdAt: { type: 'string', format: 'date-time' }
           }
         },
+<<<<<<< HEAD
+=======
+        Wallet: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            userId: { type: 'string' },
+            balance: { type: 'number', format: 'double' },
+            escrowBalance: { type: 'number', format: 'double' },
+            depositBalance: { type: 'number', format: 'double' },
+            contractStatus: { type: 'string', enum: ['inactive','registered','suspended'] },
+            minimumDeposit: { type: 'number', format: 'double' },
+            lastUpdated: { type: 'string', format: 'date-time' }
+          }
+        },
+        WalletTransaction: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            walletId: { type: 'string' },
+            userId: { type: 'string' },
+            type: { type: 'string', enum: ['deposit','withdrawal','escrow_hold','escrow_release','contract_register','contract_cancel','refund','penalty'] },
+            amount: { type: 'number', format: 'double' },
+            currency: { type: 'string' },
+            status: { type: 'string', enum: ['pending','success','failed'] },
+            note: { type: 'string' },
+            relatedOrderId: { type: 'string' },
+            createdAt: { type: 'string', format: 'date-time' }
+          }
+        },
+>>>>>>> main
         PaginatedUsers: {
           type: 'object',
           properties: {

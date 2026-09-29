@@ -4,12 +4,31 @@ const { sequelize } = require('./models');
 
 const PORT = process.env.PORT || 3000;
 
+async function ensureOrderColumns() {
+  const checks = [
+    ['escrowReleased', 'BOOLEAN NOT NULL DEFAULT FALSE'],
+    ['releasedAt', 'DATETIME NULL'],
+  ];
+
+  for (const [columnName, definition] of checks) {
+    const [rows] = await sequelize.query('SHOW COLUMNS FROM `Orders` LIKE ?', { replacements: [columnName] });
+    if (!rows || rows.length === 0) {
+      await sequelize.query(`ALTER TABLE \`Orders\` ADD COLUMN ${columnName} ${definition}`);
+    }
+  }
+}
+
 async function start() {
   try {
     await sequelize.authenticate();
     const enableSync = process.env.DB_SYNC ? process.env.DB_SYNC === 'true' : (process.env.NODE_ENV !== 'production');
     if (enableSync) {
+<<<<<<< HEAD
       await sequelize.sync();
+=======
+      await ensureOrderColumns();
+      await sequelize.sync({ alter: true });
+>>>>>>> main
       console.log('Database connected and synced');
     } else {
       console.log('Database connected (sync disabled by DB_SYNC=false)');
