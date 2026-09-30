@@ -108,6 +108,18 @@ export type Wallet = {
   minimumDeposit?: number | string;
 };
 
+export type WithdrawalRequest = {
+  id: string;
+  amount: number | string;
+  bankName: string;
+  bankAccount: string;
+  accountHolder: string;
+  status: 'pending' | 'approved' | 'rejected';
+  adminNote?: string | null;
+  createdAt?: string;
+  reviewedAt?: string | null;
+};
+
 export type UserWalletTxn = {
   id: string;
   type?: string;
@@ -126,12 +138,49 @@ export type PaymentCreateResult = {
   redirectUrl?: string;
 };
 
+export type ChatUser = Pick<User, 'id' | 'fullName' | 'avatar' | 'role'>;
+
+export type ChatMessage = {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  createdAt: string;
+  sender: ChatUser;
+};
+
+export type ChatParticipant = {
+  id: string;
+  userId: string;
+  user: ChatUser;
+  lastReadAt?: string;
+};
+
+export type ChatConversation = {
+  id: string;
+  participants: ChatParticipant[];
+  product?: { id: string; title: string } | null;
+  messages?: ChatMessage[];
+  lastMessageAt: string;
+};
+
+export type ChatContact = {
+  user: ChatUser;
+  productId: string | null;
+};
+
 async function readTokens() {
   return {
     access: await SecureStore.getItemAsync(ACCESS_KEY),
     refresh: await SecureStore.getItemAsync(REFRESH_KEY),
   };
 }
+
+export async function getAccessToken() {
+  return (await readTokens()).access;
+}
+
+export const SOCKET_URL = API_URL.replace(/\/api\/?$/, '');
 
 export async function saveSession(access: string, refresh: string) {
   await SecureStore.setItemAsync(ACCESS_KEY, access);
@@ -265,6 +314,28 @@ export const api = {
 
   orders: () => request<{ data: Order[] }>('/orders/my'),
 
+  chatContacts: () => request<{ data: ChatContact[] }>('/chat/contacts'),
+
+  chatConversations: () => request<{ data: ChatConversation[] }>('/chat/conversations'),
+
+  startChat: (participantId: string, productId?: string | null) =>
+    request<{ data: ChatConversation }>('/chat/conversations', {
+      method: 'POST',
+      body: JSON.stringify({ participantId, ...(productId ? { productId } : {}) }),
+    }),
+
+  chatMessages: (conversationId: string) =>
+    request<{ data: ChatMessage[] }>(`/chat/conversations/${encodeURIComponent(conversationId)}/messages`),
+
+  sendChatMessage: (conversationId: string, content: string) =>
+    request<{ data: ChatMessage }>(`/chat/conversations/${encodeURIComponent(conversationId)}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
+
+  markChatRead: (conversationId: string) =>
+    request(`/chat/conversations/${encodeURIComponent(conversationId)}/read`, { method: 'POST' }),
+
   library: () => request<{ data: LicenseItem[] }>('/content/my-library'),
 
   productReviews: (productId: string) =>
@@ -288,6 +359,14 @@ export const api = {
   walletSummary: () => request<{ data: Wallet }>('/wallets/me'),
 
   walletTransactions: () => request<{ data: UserWalletTxn[] }>('/wallets/transactions'),
+
+  withdrawalRequests: () => request<{ data: WithdrawalRequest[] }>('/wallets/withdrawals/me'),
+
+  createWithdrawalRequest: (payload: { amount: number; bankName: string; bankAccount: string; accountHolder: string }) =>
+    request<{ data: { request: WithdrawalRequest; wallet: Wallet } }>('/wallets/withdraw', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   depositWallet: (amount: number) =>
     request<{ data: Wallet }>('/wallets/deposit', {

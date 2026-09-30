@@ -1,4 +1,4 @@
-const { Wallet, WalletTransaction, User, Order, OrderItem, Product, Notification, License } = require('../models');
+const { sequelize, Wallet, WalletTransaction, WithdrawalRequest, User, Order, OrderItem, Product, Notification, License } = require('../models');
 const { Op } = require('sequelize');
 const { addMoney } = require('../utils/money');
 
@@ -224,7 +224,7 @@ exports.cancelSellerContract = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-exports.withdrawFunds = async (req, res, next) => {
+exports.requestWithdrawal = async (req, res, next) => {
   try {
     const { amount, bankName, bankAccount, accountHolder } = req.body;
     const amountNum = toMoney(amount);
@@ -234,30 +234,140 @@ exports.withdrawFunds = async (req, res, next) => {
     if (amountNum < MIN_WITHDRAWAL) {
       return res.status(400).json({ success: false, message: 'Withdrawal amount below minimum withdrawal' });
     }
-    if (!bankName || !bankAccount || !accountHolder) {
+    if (!bankName?.trim() || !bankAccount?.trim() || !accountHolder?.trim()) {
       return res.status(400).json({ success: false, message: 'Bank details are required: bankName, bankAccount, accountHolder' });
     }
+    const transaction = await sequelize.transaction();
+    try {
+      const wallet = await Wallet.findOne({
+        where: { userId: req.user.id },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!wallet) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Wallet not found' });
+      }
+      const available = toMoney(wallet.balance || 0);
+      if (amountNum > available) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Insufficient balance' });
+      }
 
-    const wallet = await ensureWallet(req.user.id);
-    const available = toMoney(wallet.balance || 0);
-    if (amountNum > available) return res.status(400).json({ success: false, message: 'Insufficient balance' });
-
-    wallet.balance = toMoney((Number(wallet.balance || 0) - amountNum));
-    await wallet.save();
-
-    await WalletTransaction.create({
-      walletId: wallet.id,
-      userId: req.user.id,
-      type: 'withdrawal',
-      amount: amountNum,
-      note: `Wallet withdrawal to ${bankName} (${accountHolder})`,
-      status: 'success',
-    });
-
-    await createNotification(req.user.id, 'withdrawal_success', { amount: amountNum, bankName, bankAccount, accountHolder }, 'email');
-    res.json({ success: true, message: 'Withdrawal successful', data: { wallet, amount: amountNum, status: 'PENDING' } });
+      wallet.balance = toMoney(available - amountNum);
+      await wallet.save({ transaction });
+      const request = await WithdrawalRequest.create({
+        userId: req.user.id,
+        walletId: wallet.id,
+        amount: amountNum,
+        bankName: bankName.trim(),
+        bankAccount: bankAccount.trim(),
+        accountHolder: accountHolder.trim(),
+      }, { transaction });
+      await WalletTransaction.create({
+        walletId: wallet.id,
+        userId: req.user.id,
+        relatedWithdrawalRequestId: request.id,
+        type: 'withdrawal',
+        amount: amountNum,
+        note: `Withdrawal request to ${bankName.trim()} (${accountHolder.trim()})`,
+        status: 'pending',
+      }, { transaction });
+      await transaction.commit();
+      return res.status(201).json({ success: true, message: 'Withdrawal request submitted', data: { request, wallet } });
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
   } catch (err) { next(err); }
 };
+
+exports.withdrawFunds = exports.requestWithdrawal;
+
+exports.listMyWithdrawalRequests = async (req, res, next) => {
+  try {
+    const requests = await WithdrawalRequest.findAll({
+      where: { userId: req.user.id },
+      include: [{ model: User, as: 'reviewer', attributes: ['id', 'fullName'] }],
+      order: [['createdAt', 'DESC']],
+    });
+    return res.json({ success: true, data: requests });
+  } catch (err) { next(err); }
+};
+
+exports.listWithdrawalRequests = async (req, res, next) => {
+  try {
+    const where = {};
+    if (['pending', 'approved', 'rejected'].includes(req.query.status)) where.status = req.query.status;
+    const requests = await WithdrawalRequest.findAll({
+      where,
+      include: [{ model: User, as: 'user', attributes: ['id', 'fullName', 'email'] }],
+      order: [['createdAt', 'DESC']],
+    });
+    return res.json({ success: true, data: requests });
+  } catch (err) { next(err); }
+};
+
+async function reviewWithdrawal(req, res, next, status) {
+  const transaction = await sequelize.transaction();
+  try {
+    const request = await WithdrawalRequest.findByPk(req.params.requestId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!request) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Withdrawal request not found' });
+    }
+    if (request.status !== 'pending') {
+      await transaction.rollback();
+      return res.status(409).json({ success: false, message: 'Withdrawal request has already been reviewed' });
+    }
+
+    const walletTransaction = await WalletTransaction.findOne({
+      where: { relatedWithdrawalRequestId: request.id, status: 'pending' },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+    if (!walletTransaction) throw new Error('Pending withdrawal transaction not found');
+
+    if (status === 'rejected') {
+      const wallet = await Wallet.findByPk(request.walletId, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!wallet) throw new Error('Wallet not found');
+      wallet.balance = toMoney(Number(wallet.balance || 0) + Number(request.amount));
+      await wallet.save({ transaction });
+      walletTransaction.status = 'failed';
+      walletTransaction.note = `Withdrawal request rejected: ${req.body.note?.trim() || 'No reason provided'}`;
+      await walletTransaction.save({ transaction });
+      await WalletTransaction.create({
+        walletId: wallet.id,
+        userId: request.userId,
+        relatedWithdrawalRequestId: request.id,
+        type: 'refund',
+        amount: request.amount,
+        note: 'Refund for rejected withdrawal request',
+        status: 'success',
+      }, { transaction });
+    } else {
+      walletTransaction.status = 'success';
+      await walletTransaction.save({ transaction });
+    }
+
+    request.status = status;
+    request.reviewedBy = req.user.id;
+    request.reviewedAt = new Date();
+    request.adminNote = req.body.note?.trim() || null;
+    await request.save({ transaction });
+    await transaction.commit();
+    return res.json({ success: true, data: request });
+  } catch (err) {
+    await transaction.rollback();
+    return next(err);
+  }
+}
+
+exports.approveWithdrawalRequest = (req, res, next) => reviewWithdrawal(req, res, next, 'approved');
+exports.rejectWithdrawalRequest = (req, res, next) => reviewWithdrawal(req, res, next, 'rejected');
 
 exports.updateWalletBalance = async (req, res, next) => {
   try {

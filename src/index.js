@@ -1,8 +1,13 @@
 require('dotenv').config();
 const app = require('./app');
 const { sequelize } = require('./models');
+const http = require('http');
+const initializeChatSocket = require('./config/chatSocket');
 
 const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const io = initializeChatSocket(server);
+app.set('io', io);
 
 async function ensureOrderColumns() {
   const checks = [
@@ -38,7 +43,7 @@ async function start() {
       await User.create({ fullName: 'Administrator', email: adminEmail, password: adminPassword, role: 'admin' });
       console.log(`Seeded admin: ${adminEmail} / ${adminPassword}`);
     }
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (err) {

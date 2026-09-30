@@ -122,6 +122,7 @@ router.post('/cancel-seller-contract', auth.required, walletController.cancelSel
  *         description: Withdrawal successful
  */
 router.post('/withdraw', auth.required, walletController.withdrawFunds);
+router.get('/withdrawals/me', auth.required, walletController.listMyWithdrawalRequests);
 
 /**
  * @swagger

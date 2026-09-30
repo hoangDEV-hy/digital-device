@@ -16,6 +16,10 @@ const Notification = require('./notification')(sequelize, Sequelize.DataTypes);
 const Review = require('./review')(sequelize, Sequelize.DataTypes);
 const Wallet = require('./wallet')(sequelize, Sequelize.DataTypes);
 const WalletTransaction = require('./walletTransaction')(sequelize, Sequelize.DataTypes);
+const ChatConversation = require('./chatConversation')(sequelize, Sequelize.DataTypes);
+const ChatParticipant = require('./chatParticipant')(sequelize, Sequelize.DataTypes);
+const ChatMessage = require('./chatMessage')(sequelize, Sequelize.DataTypes);
+const WithdrawalRequest = require('./withdrawalRequest')(sequelize, Sequelize.DataTypes);
 
 User.hasMany(Product, { foreignKey: 'sellerId' });
 Product.belongsTo(User, { as: 'seller', foreignKey: 'sellerId' });
@@ -55,6 +59,26 @@ User.hasOne(Wallet, { foreignKey: 'userId' });
 Wallet.belongsTo(User, { foreignKey: 'userId' });
 Wallet.hasMany(WalletTransaction, { foreignKey: 'walletId' });
 WalletTransaction.belongsTo(Wallet, { foreignKey: 'walletId' });
+Wallet.hasMany(WithdrawalRequest, { as: 'withdrawalRequests', foreignKey: 'walletId' });
+WithdrawalRequest.belongsTo(Wallet, { as: 'wallet', foreignKey: 'walletId' });
+User.hasMany(WithdrawalRequest, { as: 'withdrawalRequests', foreignKey: 'userId' });
+WithdrawalRequest.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+User.hasMany(WithdrawalRequest, { as: 'reviewedWithdrawals', foreignKey: 'reviewedBy' });
+WithdrawalRequest.belongsTo(User, { as: 'reviewer', foreignKey: 'reviewedBy' });
+WithdrawalRequest.hasMany(WalletTransaction, { as: 'transactions', foreignKey: 'relatedWithdrawalRequestId' });
+WalletTransaction.belongsTo(WithdrawalRequest, { as: 'withdrawalRequest', foreignKey: 'relatedWithdrawalRequestId' });
+User.hasMany(ChatParticipant, { foreignKey: 'userId' });
+ChatParticipant.belongsTo(User, { as: 'user', foreignKey: 'userId' });
+ChatConversation.hasMany(ChatParticipant, { as: 'participants', foreignKey: 'conversationId', onDelete: 'CASCADE' });
+ChatParticipant.belongsTo(ChatConversation, { foreignKey: 'conversationId' });
+ChatConversation.hasMany(ChatMessage, { as: 'messages', foreignKey: 'conversationId', onDelete: 'CASCADE' });
+ChatMessage.belongsTo(ChatConversation, { foreignKey: 'conversationId' });
+User.hasMany(ChatMessage, { foreignKey: 'senderId' });
+ChatMessage.belongsTo(User, { as: 'sender', foreignKey: 'senderId' });
+Product.hasMany(ChatConversation, { foreignKey: 'productId' });
+ChatConversation.belongsTo(Product, { as: 'product', foreignKey: 'productId' });
+Order.hasMany(ChatConversation, { foreignKey: 'orderId' });
+ChatConversation.belongsTo(Order, { as: 'order', foreignKey: 'orderId' });
 
 module.exports = {
   sequelize,
@@ -74,4 +98,8 @@ module.exports = {
   Review,
   Wallet,
   WalletTransaction,
+  ChatConversation,
+  ChatParticipant,
+  ChatMessage,
+  WithdrawalRequest,
 };

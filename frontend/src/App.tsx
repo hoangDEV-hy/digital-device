@@ -19,6 +19,8 @@ const LicenseListPage = lazy(() => import('./pages/licenses/LicenseList').then((
 const ReviewListPage = lazy(() => import('./pages/reviews/ReviewList').then((module) => ({ default: module.ReviewListPage })));
 const ReportListPage = lazy(() => import('./pages/reports/ReportList').then((module) => ({ default: module.ReportListPage })));
 const WalletListPage = lazy(() => import('./pages/wallets/WalletList').then((module) => ({ default: module.WalletListPage })));
+const ChatPage = lazy(() => import('./pages/Chat').then((module) => ({ default: module.ChatPage })));
+const WithdrawalRequestsPage = lazy(() => import('./pages/withdrawals/WithdrawalRequests').then((module) => ({ default: module.WithdrawalRequestsPage })));
 
 const queryClient = new QueryClient();
 
@@ -51,6 +53,8 @@ export default function App() {
           <Route path="reviews" element={<ReviewListPage />} />
           <Route path="reports" element={<ReportListPage />} />
           <Route path="wallets" element={<WalletListPage />} />
+          <Route path="messages" element={<ChatPage />} />
+          <Route path="withdrawals" element={<WithdrawalRequestsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

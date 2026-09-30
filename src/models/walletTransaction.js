@@ -11,6 +11,7 @@ module.exports = (sequelize, DataTypes) => {
     status: { type: DataTypes.ENUM('pending', 'success', 'failed'), defaultValue: 'success' },
     note: { type: DataTypes.TEXT },
     relatedOrderId: { type: DataTypes.UUID },
+    relatedWithdrawalRequestId: { type: DataTypes.UUID },
     createdAt: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   });
 

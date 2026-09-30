@@ -6,6 +6,7 @@ const adminController = require('../controllers/adminController');
 const productController = require('../controllers/productController');
 const userController = require('../controllers/userController');
 const dashboardController = require('../controllers/dashboardController');
+const walletController = require('../controllers/walletController');
 
 
 /**
@@ -60,6 +61,9 @@ router.get('/users', auth.required, role.requireAdmin, adminController.listUsers
 router.get('/users/:userId', auth.required, role.requireAdmin, adminController.getUser);
 router.get('/products/:productId', auth.required, role.requireAdmin, productController.getDetails);
 router.get('/payments', auth.required, role.requireAdmin, adminController.listPayments);
+router.get('/withdrawals', auth.required, role.requireAdmin, walletController.listWithdrawalRequests);
+router.post('/withdrawals/:requestId/approve', auth.required, role.requireAdmin, walletController.approveWithdrawalRequest);
+router.post('/withdrawals/:requestId/reject', auth.required, role.requireAdmin, walletController.rejectWithdrawalRequest);
 router.get('/licenses', auth.required, role.requireAdmin, adminController.listLicenses);
 router.get('/reviews', auth.required, role.requireAdmin, adminController.listReviews);
 router.post('/licenses/:licenseId/revoke', auth.required, role.requireAdmin, adminController.revokeLicense);

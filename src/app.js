@@ -23,6 +23,7 @@ const notificationRoutes = require("./routes/notifications");
 const reviewRoutes = require("./routes/reviews");
 const orderRoutes = require("./routes/orders");
 const walletRoutes = require("./routes/wallets");
+const chatRoutes = require("./routes/chat");
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/wallets", walletRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.get("/uploads/:filename", (req, res, next) => {
 	const filename = path.basename(req.params.filename);

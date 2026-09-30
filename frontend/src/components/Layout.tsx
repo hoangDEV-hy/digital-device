@@ -13,6 +13,8 @@ const navItems = [
   { to: "/reviews", label: "Đánh giá" },
   { to: "/reports", label: "Report vi phạm" },
   { to: "/wallets", label: "Ví & escrow" },
+  { to: "/messages", label: "Tin nhắn" },
+  { to: "/withdrawals", label: "Duyệt rút tiền" },
 ];
 
 export function Layout() {

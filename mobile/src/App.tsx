@@ -17,10 +17,11 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { API_URL, api, Cart, NewProduct, Product, ProductReview, User, Wallet, hasSession, saveSession } from './api';
+import { API_URL, api, Cart, NewProduct, Product, ProductReview, User, Wallet, WithdrawalRequest, hasSession, saveSession } from './api';
+import { ChatScreen } from './components/ChatScreen';
 
-type TabKey = 'home' | 'cart' | 'orders' | 'library' | 'profile';
-type ScreenKey = TabKey | 'detail' | 'topup' | 'seller';
+type TabKey = 'home' | 'cart' | 'orders' | 'library' | 'chat' | 'profile';
+type ScreenKey = TabKey | 'detail' | 'topup' | 'seller' | 'checkout' | 'paymentRequired' | 'withdrawal';
 
 const colors = {
   ink: '#1D2B25',
@@ -37,6 +38,7 @@ const colors = {
 const money = (value: number | string | undefined) => `${Number(value ?? 0).toLocaleString('vi-VN')} đ`;
 const GUEST_HOME_KEY = 'dm_guest_home';
 const API_ORIGIN = API_URL.replace(/\/api\/?$/, '');
+const TRANSFER_QR_URL = 'https://img.vietqr.io/image/TCB-8928929725-compact2.png?accountName=PHAM%20HUNG%20SANG';
 const mediaUrl = (path?: string) => {
   if (!path) return undefined;
   return /^https?:\/\//i.test(path) ? path : `${API_ORIGIN}/${path.replace(/^\/+/, '')}`;
@@ -332,11 +334,13 @@ function ProductDetailScreen({
   product,
   userId,
   onAddToCart,
+  onChat,
   onBack,
 }: {
   product: Product;
   userId: string;
   onAddToCart: (product: Product) => void;
+  onChat: (participantId: string, productId: string) => void;
   onBack: () => void;
 }) {
   const [reviews, setReviews] = useState<ProductReview[]>([]);
@@ -454,6 +458,9 @@ function ProductDetailScreen({
 
       <View style={styles.detailActions}>
         <Button label="Thêm vào giỏ" onPress={() => onAddToCart(product)} />
+        {product.seller?.id && product.seller.id !== userId ? (
+          <Button label="Nhắn tin người bán" onPress={() => onChat(product.seller!.id!, product.id)} secondary />
+        ) : null}
       </View>
 
       {product.seller?.id && product.seller.id !== userId ? (
@@ -621,9 +628,123 @@ function CartScreen({
             <Text style={styles.totalPrice}>{money(total)}</Text>
           </View>
 
-          <Button label="Tiến hành thanh toán" onPress={onCheckout} />
+          <Button label="Xem xác nhận thanh toán" onPress={onCheckout} />
         </>
       )}
+    </ScrollView>
+  );
+}
+
+function CheckoutScreen({
+  cart,
+  onBack,
+  onConfirm,
+}: {
+  cart: Cart | null;
+  onBack: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const items = cart?.CartItems || [];
+  const total = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+
+  const confirm = async () => {
+    setBusy(true);
+    try {
+      await onConfirm();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <Pressable style={styles.backHeader} onPress={onBack}>
+        <Ionicons name="arrow-back" size={20} color={colors.ink} />
+        <Text style={styles.backText}>Giỏ hàng</Text>
+      </Pressable>
+      <Text style={styles.pageTitle}>Xác nhận thanh toán</Text>
+
+      <View style={styles.checkoutItems}>
+        <Text style={styles.checkoutSectionTitle}>Sản phẩm</Text>
+        {items.map((item) => (
+          <View key={item.id} style={styles.checkoutItem}>
+            <View style={styles.checkoutItemInfo}>
+              <Text style={styles.productTitle}>{item.Product?.title || 'Sản phẩm số'}</Text>
+              <Text style={styles.productMeta}>Số lượng: {item.quantity}</Text>
+            </View>
+            <Text style={styles.checkoutItemPrice}>{money(Number(item.price) * Number(item.quantity))}</Text>
+          </View>
+        ))}
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>Tổng thanh toán</Text>
+          <Text style={styles.totalPrice}>{money(total)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.transferCard}>
+        <Text style={styles.transferTitle}>Techcombank</Text>
+        <Text style={styles.transferName}>PHAM HUNG SANG</Text>
+        <Text style={styles.transferAccount}>8928 9297 25</Text>
+        <Image source={{ uri: TRANSFER_QR_URL }} style={styles.transferQr} resizeMode="contain" />
+        <Text style={styles.transferFootnote}>Quét QR và chuyển đúng số tiền {money(total)}. QR tĩnh không tự xác minh giao dịch ngân hàng. Nút xác nhận bên dưới dùng luồng thanh toán mô phỏng hiện tại.</Text>
+      </View>
+
+      <Pressable style={[styles.topUpButton, (busy || items.length === 0) && styles.checkoutButtonDisabled]} onPress={() => void confirm()} disabled={busy || items.length === 0}>
+        <Text style={styles.topUpButtonText}>{busy ? 'Đang xác nhận...' : 'Xác nhận mua hàng'}</Text>
+      </Pressable>
+    </ScrollView>
+  );
+}
+
+function PaymentRequiredScreen({
+  totalAmount,
+  walletBalance,
+  onTopUp,
+  onRetry,
+}: {
+  totalAmount: number;
+  walletBalance: number;
+  onTopUp: () => void;
+  onRetry: () => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const shortfall = Math.max(0, totalAmount - walletBalance);
+
+  const retry = async () => {
+    setBusy(true);
+    try {
+      await onRetry();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.paymentRequiredHeader}>
+        <Ionicons name="wallet-outline" size={30} color={colors.orange} />
+        <Text style={styles.pageTitle}>Ví chưa đủ số dư</Text>
+        <Text style={styles.paymentRequiredCopy}>Đơn hàng đang chờ thanh toán. Nạp thêm tiền vào ví rồi thử lại để hoàn tất mua hàng.</Text>
+      </View>
+      <View style={styles.paymentAmounts}>
+        <View style={styles.paymentAmountRow}>
+          <Text style={styles.totalLabel}>Tổng đơn hàng</Text>
+          <Text style={styles.checkoutItemPrice}>{money(totalAmount)}</Text>
+        </View>
+        <View style={styles.paymentAmountRow}>
+          <Text style={styles.totalLabel}>Số dư hiện tại</Text>
+          <Text style={styles.checkoutItemPrice}>{money(walletBalance)}</Text>
+        </View>
+        <View style={[styles.paymentAmountRow, styles.shortfallRow]}>
+          <Text style={styles.shortfallLabel}>Cần nạp thêm</Text>
+          <Text style={styles.shortfallValue}>{money(shortfall)}</Text>
+        </View>
+      </View>
+      <Button label="Nạp thêm tiền vào ví" onPress={onTopUp} />
+      <View style={styles.paymentRetry}>
+        <Button label={busy ? 'Đang kiểm tra...' : 'Tôi đã nạp, thanh toán lại'} onPress={() => void retry()} secondary />
+      </View>
     </ScrollView>
   );
 }
@@ -761,18 +882,32 @@ function ProfileScreen({
   wallet,
   onWalletChanged,
   onOpenTopUp,
+  onOpenWithdrawal,
   onOpenSeller,
+  onOpenSupport,
   onLogout,
 }: {
   user: User;
   wallet: Wallet | null;
   onWalletChanged: (wallet?: Wallet) => Promise<void>;
   onOpenTopUp: () => void;
+  onOpenWithdrawal: () => void;
   onOpenSeller: () => void;
+  onOpenSupport: () => Promise<void>;
   onLogout: () => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [openingSupport, setOpeningSupport] = useState(false);
   const contractRegistered = wallet?.contractStatus === 'registered';
+
+  const openSupport = async () => {
+    setOpeningSupport(true);
+    try {
+      await onOpenSupport();
+    } finally {
+      setOpeningSupport(false);
+    }
+  };
 
   const registerContract = async () => {
     const minimum = Number(wallet?.minimumDeposit || 100000);
@@ -807,10 +942,12 @@ function ProfileScreen({
             <Text style={styles.walletStatLabel}>Tiền đang có</Text>
             <Text style={styles.walletStatValue}>{money(wallet?.balance || 0)}</Text>
           </View>
-          <View style={styles.walletStatBox}>
-            <Text style={styles.walletStatLabel}>Escrow</Text>
-            <Text style={styles.walletStatValue}>{money(wallet?.escrowBalance || 0)}</Text>
-          </View>
+          {contractRegistered ? (
+            <View style={styles.walletStatBox}>
+              <Text style={styles.walletStatLabel}>Escrow</Text>
+              <Text style={styles.walletStatValue}>{money(wallet?.escrowBalance || 0)}</Text>
+            </View>
+          ) : null}
         </View>
         <View style={styles.contractStatusRow}>
           <Text style={styles.walletStatLabel}>Hợp đồng seller</Text>
@@ -820,6 +957,9 @@ function ProfileScreen({
         </View>
         <Pressable style={styles.walletActionPrimary} onPress={onOpenTopUp}>
           <Text style={styles.walletActionPrimaryText}>Nạp tiền vào ví</Text>
+        </Pressable>
+        <Pressable style={styles.walletActionSecondary} onPress={onOpenWithdrawal}>
+          <Text style={styles.walletActionSecondaryText}>Rút tiền</Text>
         </Pressable>
         {contractRegistered && (
           <Pressable style={styles.sellerEntryButton} onPress={onOpenSeller}>
@@ -839,8 +979,8 @@ function ProfileScreen({
 
       <View style={styles.settingsBlock}>
         {['Thông tin cá nhân', 'Thông báo', 'Hỗ trợ & trợ giúp'].map((item) => (
-          <Pressable key={item} style={styles.settingRow}>
-            <Text style={styles.settingText}>{item}</Text>
+          <Pressable key={item} style={styles.settingRow} onPress={item === 'Hỗ trợ & trợ giúp' ? () => void openSupport() : undefined} disabled={item === 'Hỗ trợ & trợ giúp' && openingSupport}>
+            <Text style={styles.settingText}>{openingSupport && item === 'Hỗ trợ & trợ giúp' ? 'Đang mở hỗ trợ...' : item}</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.muted} />
           </Pressable>
         ))}
@@ -851,7 +991,7 @@ function ProfileScreen({
   );
 }
 
-function WalletTopUpScreen({
+function WithdrawalScreen({
   wallet,
   onWalletUpdated,
   onBack,
@@ -860,11 +1000,130 @@ function WalletTopUpScreen({
   onWalletUpdated: (wallet: Wallet) => void;
   onBack: () => void;
 }) {
-  const [amount, setAmount] = useState('100000');
+  const [amount, setAmount] = useState('');
+  const [withdrawAll, setWithdrawAll] = useState(false);
+  const [bankName, setBankName] = useState('');
+  const [bankAccount, setBankAccount] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
+  const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const balance = Number(wallet?.balance || 0);
+
+  const loadRequests = async () => {
+    try {
+      const result = await api.withdrawalRequests();
+      setRequests(result.data || []);
+    } catch (error) {
+      Alert.alert('Không tải được lịch sử rút tiền', error instanceof Error ? error.message : 'Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { void loadRequests(); }, []);
+
+  const submit = async () => {
+    const amountValue = withdrawAll ? balance : Number(amount.replace(/[^0-9.]/g, ''));
+    if (!Number.isFinite(amountValue) || amountValue < 10000) {
+      Alert.alert('Số tiền không hợp lệ', 'Số tiền rút tối thiểu là 10.000đ.');
+      return;
+    }
+    if (!bankName.trim() || !bankAccount.trim() || !accountHolder.trim()) {
+      Alert.alert('Thiếu thông tin ngân hàng', 'Nhập ngân hàng, số tài khoản và tên chủ tài khoản.');
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const result = await api.createWithdrawalRequest({
+        amount: amountValue,
+        bankName: bankName.trim(),
+        bankAccount: bankAccount.trim(),
+        accountHolder: accountHolder.trim(),
+      });
+      onWalletUpdated(result.data.wallet);
+      setAmount('');
+      setWithdrawAll(false);
+      await loadRequests();
+      Alert.alert('Đã gửi yêu cầu', 'Số tiền đã được giữ lại trong lúc admin xét duyệt.');
+    } catch (error) {
+      Alert.alert('Không gửi được yêu cầu', error instanceof Error ? error.message : 'Vui lòng thử lại.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const statusText = (status: WithdrawalRequest['status']) => status === 'pending' ? 'Đang chờ duyệt' : status === 'approved' ? 'Đã duyệt' : 'Đã từ chối';
+
+  return (
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <Pressable style={styles.backHeader} onPress={onBack}>
+        <Ionicons name="arrow-back" size={20} color={colors.ink} />
+        <Text style={styles.backText}>Tài khoản</Text>
+      </Pressable>
+      <Text style={styles.pageTitle}>Rút tiền về ngân hàng</Text>
+      <Text style={styles.topUpIntro}>Số dư khả dụng: {money(balance)}. Yêu cầu sẽ được admin duyệt trước khi chuyển khoản.</Text>
+
+      <View style={styles.withdrawalForm}>
+        <Text style={styles.inputLabel}>Số tiền muốn rút</Text>
+        <TextInput
+          value={withdrawAll ? String(balance) : amount}
+          onChangeText={(value) => { setWithdrawAll(false); setAmount(value.replace(/[^0-9]/g, '')); }}
+          style={styles.walletInput}
+          placeholder="Tối thiểu 10.000đ"
+          placeholderTextColor={colors.muted}
+          keyboardType="number-pad"
+          editable={!withdrawAll}
+        />
+        <Pressable style={[styles.withdrawAllButton, withdrawAll && styles.withdrawAllButtonActive]} onPress={() => { setWithdrawAll((current) => !current); setAmount(''); }}>
+          <Ionicons name={withdrawAll ? 'checkbox' : 'square-outline'} size={18} color={withdrawAll ? colors.white : colors.ink} />
+          <Text style={[styles.withdrawAllText, withdrawAll && styles.withdrawAllTextActive]}>Rút toàn bộ số dư</Text>
+        </Pressable>
+
+        <Text style={styles.inputLabel}>Ngân hàng</Text>
+        <TextInput value={bankName} onChangeText={setBankName} style={styles.walletInput} placeholder="Ví dụ: Vietcombank" placeholderTextColor={colors.muted} />
+        <Text style={styles.inputLabel}>Số tài khoản</Text>
+        <TextInput value={bankAccount} onChangeText={setBankAccount} style={styles.walletInput} placeholder="Nhập số tài khoản" placeholderTextColor={colors.muted} keyboardType="number-pad" />
+        <Text style={styles.inputLabel}>Tên chủ tài khoản</Text>
+        <TextInput value={accountHolder} onChangeText={setAccountHolder} style={styles.walletInput} placeholder="Tên không dấu như trên ngân hàng" placeholderTextColor={colors.muted} autoCapitalize="characters" />
+        <Pressable style={styles.topUpButton} onPress={() => void submit()} disabled={busy}>
+          <Text style={styles.topUpButtonText}>{busy ? 'Đang gửi...' : `Gửi yêu cầu ${money(withdrawAll ? balance : Number(amount) || 0)}`}</Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.sectionTitle}>Lịch sử yêu cầu</Text>
+      {loading ? <ActivityIndicator color={colors.orange} style={styles.loader} /> : requests.length === 0 ? (
+        <Text style={styles.emptyText}>Chưa có yêu cầu rút tiền.</Text>
+      ) : requests.map((request) => (
+        <View key={request.id} style={styles.withdrawalRequestRow}>
+          <View style={styles.withdrawalRequestHeading}>
+            <Text style={styles.productTitle}>{money(request.amount)}</Text>
+            <Text style={[styles.withdrawalStatus, request.status === 'approved' ? styles.withdrawalApproved : request.status === 'rejected' ? styles.withdrawalRejected : styles.withdrawalPending]}>{statusText(request.status)}</Text>
+          </View>
+          <Text style={styles.productMeta}>{request.bankName} · {request.bankAccount} · {request.accountHolder}</Text>
+          {request.adminNote ? <Text style={styles.withdrawalNote}>Ghi chú admin: {request.adminNote}</Text> : null}
+          <Text style={styles.withdrawalDate}>{request.createdAt ? new Date(request.createdAt).toLocaleString('vi-VN') : ''}</Text>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
+function WalletTopUpScreen({
+  wallet,
+  onWalletUpdated,
+  onBack,
+  initialAmount,
+}: {
+  wallet: Wallet | null;
+  onWalletUpdated: (wallet: Wallet) => void;
+  onBack: () => void;
+  initialAmount?: number;
+}) {
+  const [amount, setAmount] = useState(String(initialAmount || 100000));
   const [busy, setBusy] = useState(false);
   const contractRegistered = wallet?.contractStatus === 'registered';
-  const qrImage = 'https://img.vietqr.io/image/TCB-8928929725-compact2.png?accountName=PHAM%20HUNG%20SANG';
-
   const topUp = async () => {
     const value = Number(amount.replace(/[^0-9]/g, ''));
     if (!Number.isFinite(value) || value <= 0) {
@@ -910,7 +1169,7 @@ function WalletTopUpScreen({
         <Text style={styles.transferTitle}>Techcombank</Text>
         <Text style={styles.transferName}>PHAM HUNG SANG</Text>
         <Text style={styles.transferAccount}>8928 9297 25</Text>
-        <Image source={{ uri: qrImage }} style={styles.transferQr} resizeMode="contain" />
+        <Image source={{ uri: TRANSFER_QR_URL }} style={styles.transferQr} resizeMode="contain" />
         <Text style={styles.transferFootnote}>QR chuyển khoản không tự xác nhận giao dịch hoặc cộng số dư.</Text>
       </View>
 
@@ -1165,6 +1424,10 @@ function MarketplaceApp() {
   const [tab, setTab] = useState<TabKey>('home');
   const [screen, setScreen] = useState<ScreenKey>('home');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [pendingOrder, setPendingOrder] = useState<{ id: string; totalAmount: number } | null>(null);
+  const [topUpReturnScreen, setTopUpReturnScreen] = useState<'profile' | 'paymentRequired'>('profile');
+  const [pendingChat, setPendingChat] = useState<{ participantId: string; productId: string } | null>(null);
+  const [chatThreadOpen, setChatThreadOpen] = useState(false);
   const [cart, setCart] = useState<Cart | null>(null);
   const [cartLoading, setCartLoading] = useState(true);
   const [ready, setReady] = useState(false);
@@ -1237,17 +1500,44 @@ function MarketplaceApp() {
     }
   };
 
+  const finishPaidOrder = async (orderId: string) => {
+    await reloadWallet();
+    await reloadCart();
+    setPendingOrder(null);
+    Alert.alert('Đặt hàng thành công', `Mã đơn: ${orderId}`);
+    setTab('orders');
+    setScreen('orders');
+  };
+
   const handleCheckout = async () => {
     try {
       const checkoutResult = await api.checkout();
       const paymentResult = await api.createPayment(checkoutResult.data.orderId, 'mock');
-      if (paymentResult.data.redirectUrl || paymentResult.data.status === 'pending') {
-        await api.mockIpnSuccess(checkoutResult.data.orderId);
+      if (paymentResult.data.status !== 'success') {
+        setPendingOrder({
+          id: checkoutResult.data.orderId,
+          totalAmount: Number(paymentResult.data.requiredAmount || checkoutResult.data.totalAmount),
+        });
+        await reloadWallet();
+        setScreen('paymentRequired');
+        return;
       }
-      Alert.alert('Đặt hàng thành công', `Mã đơn: ${checkoutResult.data.orderId}`);
-      await reloadCart();
-      setTab('orders');
-      setScreen('orders');
+      await finishPaidOrder(checkoutResult.data.orderId);
+    } catch (error) {
+      Alert.alert('Chưa thể thanh toán', error instanceof Error ? error.message : 'Vui lòng thử lại');
+    }
+  };
+
+  const retryPendingPayment = async () => {
+    if (!pendingOrder) return;
+    try {
+      const result = await api.createPayment(pendingOrder.id, 'wallet');
+      if (result.data.status !== 'success') {
+        await reloadWallet();
+        Alert.alert('Ví vẫn chưa đủ', 'Hãy nạp thêm tiền rồi thử lại.');
+        return;
+      }
+      await finishPaidOrder(pendingOrder.id);
     } catch (error) {
       Alert.alert('Chưa thể thanh toán', error instanceof Error ? error.message : 'Vui lòng thử lại');
     }
@@ -1262,6 +1552,22 @@ function MarketplaceApp() {
     }
   };
 
+  const handleOpenSupport = async () => {
+    try {
+      const result = await api.chatContacts();
+      const admin = result.data.find((contact) => contact.user.role === 'admin');
+      if (!admin) {
+        Alert.alert('Chưa có tài khoản Admin', 'Hệ thống chưa có tài khoản quản trị để nhận tin nhắn.');
+        return;
+      }
+      setPendingChat({ participantId: admin.user.id, productId: '' });
+      setTab('chat');
+      setScreen('chat');
+    } catch (error) {
+      Alert.alert('Không mở được hỗ trợ', error instanceof Error ? error.message : 'Vui lòng thử lại.');
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await api.logout();
@@ -1269,8 +1575,10 @@ function MarketplaceApp() {
       setUser(null);
       setCart(null);
       setWallet(null);
+      setPendingOrder(null);
       setScreen('home');
       setTab('home');
+      setChatThreadOpen(false);
       await SecureStore.deleteItemAsync(GUEST_HOME_KEY);
     }
   };
@@ -1325,7 +1633,9 @@ function MarketplaceApp() {
   let content: React.ReactNode;
 
   if (screen === 'detail' && selectedProduct) {
-    content = <ProductDetailScreen product={selectedProduct} userId={user.id} onAddToCart={handleAddToCart} onBack={() => setScreen(tab)} />;
+    content = <ProductDetailScreen product={selectedProduct} userId={user.id} onAddToCart={handleAddToCart} onChat={(participantId, productId) => { setPendingChat({ participantId, productId }); setTab('chat'); setScreen('chat'); }} onBack={() => setScreen(tab)} />;
+  } else if (screen === 'chat') {
+    content = <ChatScreen userId={user.id} initialContact={pendingChat} onInitialHandled={() => setPendingChat(null)} onThreadChange={setChatThreadOpen} />;
   } else if (screen === 'seller') {
     content = <SellerStudioScreen onBack={() => setScreen('profile')} />;
   } else if (screen === 'topup') {
@@ -1333,7 +1643,19 @@ function MarketplaceApp() {
       <WalletTopUpScreen
         wallet={wallet}
         onWalletUpdated={setWallet}
-        onBack={() => setScreen('profile')}
+        initialAmount={topUpReturnScreen === 'paymentRequired' && pendingOrder ? Math.max(1, pendingOrder.totalAmount - Number(wallet?.balance || 0)) : undefined}
+        onBack={() => setScreen(topUpReturnScreen)}
+      />
+    );
+  } else if (screen === 'withdrawal') {
+    content = <WithdrawalScreen wallet={wallet} onWalletUpdated={setWallet} onBack={() => setScreen('profile')} />;
+  } else if (screen === 'paymentRequired' && pendingOrder) {
+    content = (
+      <PaymentRequiredScreen
+        totalAmount={pendingOrder.totalAmount}
+        walletBalance={Number(wallet?.balance || 0)}
+        onTopUp={() => { setTopUpReturnScreen('paymentRequired'); setScreen('topup'); }}
+        onRetry={retryPendingPayment}
       />
     );
   } else if (screen === 'cart') {
@@ -1343,9 +1665,11 @@ function MarketplaceApp() {
         loading={cartLoading}
         onRefresh={reloadCart}
         onRemoveItem={handleRemoveItem}
-        onCheckout={handleCheckout}
+        onCheckout={() => setScreen('checkout')}
       />
     );
+  } else if (screen === 'checkout') {
+    content = <CheckoutScreen cart={cart} onBack={() => setScreen('cart')} onConfirm={handleCheckout} />;
   } else if (screen === 'orders') {
     content = <OrdersScreen />;
   } else if (screen === 'library') {
@@ -1356,8 +1680,10 @@ function MarketplaceApp() {
         user={user}
         wallet={wallet}
         onWalletChanged={reloadWallet}
-        onOpenTopUp={() => setScreen('topup')}
+        onOpenTopUp={() => { setTopUpReturnScreen('profile'); setScreen('topup'); }}
+        onOpenWithdrawal={() => setScreen('withdrawal')}
         onOpenSeller={() => setScreen('seller')}
+        onOpenSupport={handleOpenSupport}
         onLogout={handleLogout}
       />
     );
@@ -1370,6 +1696,7 @@ function MarketplaceApp() {
     { key: 'cart', icon: 'bag-handle-outline', label: 'Giỏ hàng' },
     { key: 'orders', icon: 'receipt-outline', label: 'Đơn hàng' },
     { key: 'library', icon: 'library-outline', label: 'Thư viện' },
+    { key: 'chat', icon: 'chatbubble-ellipses-outline', label: 'Tin nhắn' },
     { key: 'profile', icon: 'person-outline', label: 'Tài khoản' },
   ];
 
@@ -1377,21 +1704,23 @@ function MarketplaceApp() {
     <SafeAreaView style={styles.app}>
       <StatusBar style="dark" />
       {content}
-      <View style={styles.navBar}>
-        {navItems.map((item) => (
-          <Pressable
-            key={item.key}
-            onPress={() => {
-              setTab(item.key);
-              setScreen(item.key);
-            }}
-            style={styles.navItem}
-          >
-            <Ionicons name={item.icon} size={22} color={tab === item.key ? colors.orange : colors.muted} />
-            <Text style={[styles.navLabel, tab === item.key && styles.navLabelActive]}>{item.label}</Text>
-          </Pressable>
-        ))}
-      </View>
+      {!(screen === 'chat' && chatThreadOpen) ? (
+        <View style={styles.navBar}>
+          {navItems.map((item) => (
+            <Pressable
+              key={item.key}
+              onPress={() => {
+                setTab(item.key);
+                setScreen(item.key);
+              }}
+              style={styles.navItem}
+            >
+              <Ionicons name={item.icon} size={22} color={tab === item.key ? colors.orange : colors.muted} />
+              <Text numberOfLines={1} style={[styles.navLabel, tab === item.key && styles.navLabelActive]}>{item.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -2057,6 +2386,162 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     padding: 18,
     marginBottom: 18,
+  },
+  checkoutItems: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    marginBottom: 16,
+  },
+  checkoutSectionTitle: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+  checkoutItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  checkoutItemInfo: {
+    flex: 1,
+  },
+  checkoutItemPrice: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  checkoutButtonDisabled: {
+    opacity: 0.5,
+  },
+  paymentRequiredHeader: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
+  paymentRequiredCopy: {
+    color: colors.muted,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  paymentAmounts: {
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 16,
+    marginBottom: 16,
+  },
+  paymentAmountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 9,
+  },
+  shortfallRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    marginTop: 4,
+    paddingTop: 13,
+  },
+  shortfallLabel: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  shortfallValue: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  paymentRetry: {
+    marginTop: 10,
+  },
+  withdrawalForm: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 24,
+  },
+  withdrawAllButton: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 10,
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  withdrawAllButtonActive: {
+    backgroundColor: colors.ink,
+    borderColor: colors.ink,
+  },
+  withdrawAllText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  withdrawAllTextActive: {
+    color: colors.white,
+  },
+  withdrawalRequestRow: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 10,
+  },
+  withdrawalRequestHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  withdrawalStatus: {
+    overflow: 'hidden',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  withdrawalApproved: {
+    color: '#24704C',
+    backgroundColor: '#E2F3E9',
+  },
+  withdrawalRejected: {
+    color: '#A13D34',
+    backgroundColor: '#FBE8E5',
+  },
+  withdrawalPending: {
+    color: '#8A5B16',
+    backgroundColor: '#FFF1D6',
+  },
+  withdrawalNote: {
+    color: colors.ink,
+    fontSize: 12,
+    marginTop: 8,
+  },
+  withdrawalDate: {
+    color: colors.muted,
+    fontSize: 10,
+    marginTop: 7,
   },
   transferTitle: {
     color: '#d72332',
