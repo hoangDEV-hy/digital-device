@@ -1,4 +1,4 @@
-const { User, Product } = require('../models');
+const { User, Product, Payment, License, Review, Order } = require('../models');
 const { Op } = require('sequelize');
 
 exports.listUsers = async (req, res, next) => {
@@ -8,6 +8,16 @@ exports.listUsers = async (req, res, next) => {
     if (q) where[Op.or] = [{ fullName: { [Op.like]: `%${q}%` } }, { email: { [Op.like]: `%${q}%` } }];
     const users = await User.findAndCountAll({ where, limit: parseInt(pageSize), offset: (page-1)*pageSize, attributes: { exclude: ['password'] } });
     res.json({ success: true, data: { items: users.rows, total: users.count } });
+  } catch (err) { next(err); }
+};
+
+exports.getUser = async (req, res, next) => {
+  try {
+    const user = await User.findByPk(req.params.userId, {
+      attributes: { exclude: ['password'] },
+    });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.json({ success: true, data: user });
   } catch (err) { next(err); }
 };
 
@@ -74,21 +84,36 @@ exports.resetDeviceIp = async (req, res, next) => {
 
 exports.listPayments = async (req, res, next) => {
   try {
-    const payments = await Payment.findAll({ order: [['createdAt', 'DESC']] });
+    const payments = await Payment.findAll({
+      include: [{ model: Order, include: [{ model: User, attributes: ['id', 'fullName', 'email'] }] }],
+      order: [['createdAt', 'DESC']],
+    });
     res.json({ success: true, data: payments });
   } catch (err) { next(err); }
 };
 
 exports.listLicenses = async (req, res, next) => {
   try {
-    const licenses = await License.findAll({ include: [User, Product], order: [['issuedAt', 'DESC']] });
+    const licenses = await License.findAll({
+      include: [
+        { model: User, attributes: ['id', 'fullName', 'email'] },
+        { model: Product, attributes: ['id', 'title'] },
+      ],
+      order: [['issuedAt', 'DESC']],
+    });
     res.json({ success: true, data: licenses });
   } catch (err) { next(err); }
 };
 
 exports.listReviews = async (req, res, next) => {
   try {
-    const reviews = await Review.findAll({ include: [{ model: User, as: 'user' }, Product], order: [['createdAt', 'DESC']] });
+    const reviews = await Review.findAll({
+      include: [
+        { model: User, as: 'user', attributes: ['id', 'fullName', 'email'] },
+        { model: Product, attributes: ['id', 'title'] },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
     res.json({ success: true, data: reviews });
   } catch (err) { next(err); }
 };
@@ -99,6 +124,17 @@ exports.resolveReport = async (req, res, next) => {
     const report = await Report.findByPk(req.params.reportId);
     if (!report) return res.status(404).json({ success: false, message: 'Report not found' });
     report.status = 'reviewed';
+    await report.save();
+    res.json({ success: true, data: report });
+  } catch (err) { next(err); }
+};
+
+exports.dismissReport = async (req, res, next) => {
+  try {
+    const { Report } = require('../models');
+    const report = await Report.findByPk(req.params.reportId);
+    if (!report) return res.status(404).json({ success: false, message: 'Report not found' });
+    report.status = 'dismissed';
     await report.save();
     res.json({ success: true, data: report });
   } catch (err) { next(err); }

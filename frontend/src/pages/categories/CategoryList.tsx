@@ -3,24 +3,17 @@ import { toast } from 'react-hot-toast';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { DataTable } from '../../components/DataTable';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
-import { StatusBadge } from '../../components/StatusBadge';
 import { createCategory, deleteCategory, getCategories, updateCategory, type CategoryRecord } from '../../api/categories';
-
-interface CategoryRow {
-  id: number;
-  name: string;
-  description: string;
-  status: 'active' | 'inactive';
-}
 
 export function CategoryListPage() {
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
   const [query, setQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', description: '' });
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { getCategories().then((response) => setCategories(response.data ?? [])); }, []);
 
@@ -40,13 +33,13 @@ export function CategoryListPage() {
     setModalOpen(true);
   };
 
-  const openEditModal = (category: CategoryRow) => {
+  const openEditModal = (category: CategoryRecord) => {
     setEditingId(category.id);
-    setForm({ name: category.name, description: category.description });
+    setForm({ name: category.name, description: category.description ?? '' });
     setModalOpen(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const name = form.name.trim();
     const description = form.description.trim();
 
@@ -61,24 +54,28 @@ export function CategoryListPage() {
       return;
     }
 
-    if (editingId !== null) {
-      updateCategory(editingId, { name, description }).then((response) => {
+    setSaving(true);
+    try {
+      if (editingId !== null) {
+        const response = await updateCategory(editingId, { name, description });
         setCategories((items) => items.map((item) => item.id === editingId ? response.data : item));
-      });
-      toast.success('Cập nhật danh mục thành công');
-    } else {
-      createCategory({ name, description }).then((response) => {
+        toast.success('Cập nhật danh mục thành công');
+      } else {
+        const response = await createCategory({ name, description });
         setCategories((items) => [response.data, ...items]);
         toast.success('Thêm danh mục thành công');
-      });
+      }
+      setModalOpen(false);
+      resetForm();
+    } catch {
+      return;
+    } finally {
+      setSaving(false);
     }
-
-    setModalOpen(false);
-    resetForm();
   };
 
   const handleDelete = () => {
-    if (!pendingDeleteId) return;
+    if (pendingDeleteId === null) return;
     const exists = categories.some((category) => category.id === pendingDeleteId);
     if (!exists) {
       toast.error('Danh mục không tồn tại');
@@ -89,6 +86,8 @@ export function CategoryListPage() {
     deleteCategory(pendingDeleteId).then(() => {
       setCategories((items) => items.filter((item) => item.id !== pendingDeleteId));
       toast.success('Xóa danh mục thành công');
+    }).catch(() => {
+      return;
     }).finally(() => { setConfirmOpen(false); setPendingDeleteId(null); });
   };
 
@@ -117,7 +116,6 @@ export function CategoryListPage() {
       <DataTable
         columns={[
           { key: 'name', header: 'Tên danh mục', render: (row) => <div><div className="font-semibold text-slate-800">{row.name}</div><div className="text-xs text-slate-500">{row.description}</div></div> },
-          { key: 'status', header: 'Trạng thái', render: (row) => <StatusBadge label={row.status === 'active' ? 'Đang hiển thị' : 'Tạm ẩn'} tone={row.status === 'active' ? 'success' : 'neutral'} /> },
           { key: 'actions', header: 'Thao tác', render: (row) => (
             <div className="flex gap-2">
               <button type="button" onClick={() => openEditModal(row)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">Sửa</button>
@@ -159,8 +157,8 @@ export function CategoryListPage() {
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={() => { setModalOpen(false); resetForm(); }} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Hủy</button>
-              <button type="button" onClick={handleSubmit} className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600">{editingId !== null ? 'Lưu thay đổi' : 'Thêm mới'}</button>
+              <button type="button" disabled={saving} onClick={() => { setModalOpen(false); resetForm(); }} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">Hủy</button>
+              <button type="button" disabled={saving} onClick={handleSubmit} className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50">{saving ? 'Đang lưu...' : editingId !== null ? 'Lưu thay đổi' : 'Thêm mới'}</button>
             </div>
           </div>
         </div>

@@ -1,28 +1,53 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { DataTable } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
-import { getUsers, type UserRecord } from '../../api/users';
-
-interface UserRow {
-  id: number;
-  fullName: string;
-  email: string;
-  phone: string;
-  role: 'admin' | 'customer';
-  status: 'active' | 'locked';
-  createdAt: string;
-}
+import { getUsers, lockUser, resetDeviceIp, unlockUser, type UserRecord } from '../../api/users';
+import { useAuthStore } from '../../store/authStore';
 
 export function UserListPage() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(3);
+  const [loading, setLoading] = useState(true);
+  const [busyUserId, setBusyUserId] = useState<string | null>(null);
+  const pageSize = 10;
+  const currentUserId = useAuthStore((state) => state.user?.id);
 
-  useEffect(() => { getUsers().then((response) => setUsers(response.data ?? [])); }, []);
+  useEffect(() => {
+    getUsers().then((response) => setUsers(response.data ?? [])).finally(() => setLoading(false));
+  }, []);
+
+  const updateStatus = async (user: UserRecord) => {
+    setBusyUserId(user.id);
+    try {
+      if (user.status === 'active') {
+        await lockUser(user.id);
+        setUsers((items) => items.map((item) => item.id === user.id ? { ...item, status: 'locked' } : item));
+        toast.success('Đã khóa tài khoản');
+      } else {
+        await unlockUser(user.id);
+        setUsers((items) => items.map((item) => item.id === user.id ? { ...item, status: 'active' } : item));
+        toast.success('Đã mở khóa tài khoản');
+      }
+    } finally {
+      setBusyUserId(null);
+    }
+  };
+
+  const handleResetIp = async (user: UserRecord) => {
+    setBusyUserId(user.id);
+    try {
+      await resetDeviceIp(user.id);
+      setUsers((items) => items.map((item) => item.id === user.id ? { ...item, deviceIp: null } : item));
+      toast.success('Đã đặt lại liên kết IP');
+    } finally {
+      setBusyUserId(null);
+    }
+  };
 
   const filteredUsers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -30,7 +55,7 @@ export function UserListPage() {
       if (!normalized) return true;
       return `${user.fullName} ${user.email}`.toLowerCase().includes(normalized);
     });
-  }, [query]);
+  }, [users, query]);
 
   const paginated = filteredUsers.slice((page - 1) * pageSize, page * pageSize);
 
@@ -56,18 +81,24 @@ export function UserListPage() {
         columns={[
           { key: 'fullName', header: 'Họ tên', render: (row) => <div><div className="font-semibold text-slate-800">{row.fullName}</div><div className="text-xs text-slate-500">{row.email}</div></div> },
           { key: 'phone', header: 'SĐT' },
+          { key: 'deviceIp', header: 'IP thiết bị' },
           { key: 'role', header: 'Vai trò', render: (row) => <StatusBadge label={row.role === 'admin' ? 'Admin' : 'Customer'} tone={row.role === 'admin' ? 'warning' : 'info'} /> },
           { key: 'status', header: 'Trạng thái', render: (row) => <StatusBadge label={row.status === 'active' ? 'Active' : 'Locked'} tone={row.status === 'active' ? 'success' : 'danger'} /> },
           { key: 'createdAt', header: 'Ngày tạo' },
           { key: 'actions', header: 'Thao tác', render: (row) => (
-            <div className="flex gap-2">
-              <Link to={`/users/${row.id}`} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">
-                Chi tiết
-              </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link to={`/users/${row.id}`} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700">Chi tiết</Link>
+              <button type="button" disabled={busyUserId === row.id || row.id === currentUserId} onClick={() => updateStatus(row)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+                {row.status === 'active' ? 'Khóa' : 'Mở khóa'}
+              </button>
+              <button type="button" disabled={busyUserId === row.id || !row.deviceIp} onClick={() => handleResetIp(row)} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50">
+                Đặt lại IP
+              </button>
             </div>
           ) },
         ]}
         data={paginated}
+        loading={loading}
         rowNumberOffset={(page - 1) * pageSize}
       />
 

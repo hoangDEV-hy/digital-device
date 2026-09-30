@@ -52,6 +52,7 @@ router.get('/mine-products', auth.required, orderController.getOrdersForMyProduc
  *         description: Full order list
  */
 router.get('/all', auth.required, role.requireAdmin, orderController.getAllOrders);
+router.get('/:orderId', auth.required, role.requireAdmin, orderController.getOrderById);
 
 /**
  * @swagger

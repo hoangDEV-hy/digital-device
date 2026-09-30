@@ -4,27 +4,22 @@ import type { ApiResponse } from '../types/auth';
 export type LicenseStatus = 'active' | 'revoked';
 
 export interface LicenseRecord {
-  id: number;
-  customerName?: string;
-  productName?: string;
-  orderId?: number;
+  id: string;
+  userId: string;
+  productId: string;
+  orderId: string;
   issuedAt?: string;
   status: LicenseStatus;
+  User?: { fullName: string; email: string };
+  Product?: { title: string };
 }
 
 export const getLicenses = async () => {
   const response = await api.get<ApiResponse<LicenseRecord[]>>('/admin/licenses');
-  return {
-    success: response.data.success,
-    data: (response.data.data ?? []).map((license: LicenseRecord & { User?: { fullName?: string }; Product?: { title?: string } }) => ({
-      ...license,
-      customerName: license.customerName ?? license.User?.fullName,
-      productName: license.productName ?? license.Product?.title,
-    })),
-  };
+  return response.data;
 };
 
-export const revokeLicense = async (id: number, reason?: string) => {
-  const response = await api.patch<ApiResponse<LicenseRecord>>(`/admin/licenses/${id}/revoke`, { reason });
+export const revokeLicense = async (id: string) => {
+  const response = await api.post<ApiResponse<null>>(`/admin/licenses/${id}/revoke`);
   return response.data;
 };

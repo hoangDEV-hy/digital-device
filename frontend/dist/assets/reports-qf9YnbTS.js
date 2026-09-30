@@ -1,0 +1,1 @@
+import{c as e}from"./index-Cf8_nRVl.js";const o=async()=>(await e.get("/admin/reports")).data,a=async s=>(await e.post(`/admin/reports/${s}/resolve`)).data,n=async s=>(await e.post(`/admin/reports/${s}/dismiss`)).data;export{n as d,o as g,a as r};

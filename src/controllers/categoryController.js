@@ -13,9 +13,9 @@ exports.update = async (req, res, next) => {
     const { categoryId } = req.params;
     const cat = await Category.findByPk(categoryId);
     if (!cat) return res.status(404).json({ success: false, message: 'Category not found' });
-        const { name, description } = req.body;
-        if (name) cat.name = name;
-    if (description) cat.description = description;
+      const { name, description } = req.body;
+      if (name !== undefined) cat.name = name;
+      if (description !== undefined) cat.description = description;
     await cat.save();
     res.json({ success: true, data: cat });
   } catch (err) { next(err); }

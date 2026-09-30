@@ -2,27 +2,22 @@ import api from './client';
 import type { ApiResponse } from '../types/auth';
 
 export interface ReviewRecord {
-  id: number;
-  productName?: string;
-  reviewerName?: string;
+  id: string;
+  userId: string;
+  productId: string;
   rating: number;
-  content?: string;
+  content: string;
   createdAt?: string;
+  user?: { id: string; fullName: string; email: string };
+  Product?: { id: string; title: string };
 }
 
 export const getReviews = async () => {
   const response = await api.get<ApiResponse<ReviewRecord[]>>('/admin/reviews');
-  return {
-    success: response.data.success,
-    data: (response.data.data ?? []).map((review: ReviewRecord & { user?: { fullName?: string }; Product?: { title?: string } }) => ({
-      ...review,
-      reviewerName: review.reviewerName ?? review.user?.fullName,
-      productName: review.productName ?? review.Product?.title,
-    })),
-  };
+  return response.data;
 };
 
-export const deleteReview = async (id: number) => {
+export const deleteReview = async (id: string) => {
   const response = await api.delete<ApiResponse<null>>(`/reviews/${id}`);
   return response.data;
 };

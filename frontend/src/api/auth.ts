@@ -3,7 +3,7 @@ import type { ApiResponse, AuthTokens, LoginRequest } from "../types/auth";
 
 export interface LoginResponse {
   user: {
-    id: number;
+    id: string;
     fullName: string;
     email: string;
     phone?: string;
@@ -24,8 +24,10 @@ export const loginAdmin = async (payload: LoginRequest) => {
   return response.data;
 };
 
-export const logout = async () => {
-  const response = await api.post<ApiResponse<null>>("/auth/logout");
+export const logout = async (refreshToken?: string) => {
+  const response = await api.post<ApiResponse<null>>("/auth/logout", {
+    refreshToken,
+  });
   return response.data;
 };
 

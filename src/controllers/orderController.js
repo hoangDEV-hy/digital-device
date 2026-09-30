@@ -1,5 +1,6 @@
-const { Order, OrderItem, Product, User, Cart, CartItem, Wallet, WalletTransaction, Notification } = require('../models');
+const { Order, OrderItem, Product, User, Payment, Cart, CartItem, Wallet, WalletTransaction, Notification } = require('../models');
 const { Op } = require('sequelize');
+const { addMoney } = require('../utils/money');
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const toMoney = (value) => Number(parseFloat(value || 0).toFixed(2));
@@ -70,7 +71,7 @@ exports.releaseEscrowForEligibleOrders = async (req, res, next) => {
         }
 
         wallet.escrowBalance = toMoney((wallet.escrowBalance || 0) - releaseAmount);
-        wallet.balance = toMoney((wallet.balance || 0) + releaseAmount);
+        wallet.balance = addMoney(wallet.balance, releaseAmount);
         await wallet.save();
 
         await WalletTransaction.create({
@@ -230,11 +231,31 @@ exports.getAllOrders = async (req, res, next) => {
           model: OrderItem,
           include: [{ model: Product, attributes: ['id', 'title', 'price', 'thumbnail', 'type', 'sellerId'] }],
         },
+        { model: Payment },
       ],
       order: [['createdAt', 'DESC']],
     });
 
     res.json({ success: true, data: orders });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getOrderById = async (req, res, next) => {
+  try {
+    const order = await Order.findByPk(req.params.orderId, {
+      include: [
+        { model: User, attributes: ['id', 'fullName', 'email'] },
+        {
+          model: OrderItem,
+          include: [{ model: Product, attributes: ['id', 'title', 'price', 'thumbnail', 'type', 'sellerId'] }],
+        },
+        { model: Payment },
+      ],
+    });
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+    res.json({ success: true, data: order });
   } catch (err) {
     next(err);
   }

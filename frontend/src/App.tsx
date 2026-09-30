@@ -1,21 +1,24 @@
+import { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { LoginPage } from './pages/Login';
-import { DashboardPage } from './pages/Dashboard';
-import { UserListPage } from './pages/users/UserList';
-import { UserDetailPage } from './pages/users/UserDetail';
-import { CategoryListPage } from './pages/categories/CategoryList';
-import { ProductListPage } from './pages/products/ProductList';
-import { ProductDetailPage } from './pages/products/ProductDetail';
-import { OrderListPage } from './pages/orders/OrderList';
-import { OrderDetailPage } from './pages/orders/OrderDetail';
-import { PaymentListPage } from './pages/payments/PaymentList';
-import { LicenseListPage } from './pages/licenses/LicenseList';
-import { ReviewListPage } from './pages/reviews/ReviewList';
-import { ReportListPage } from './pages/reports/ReportList';
+
+const LoginPage = lazy(() => import('./pages/Login').then((module) => ({ default: module.LoginPage })));
+const DashboardPage = lazy(() => import('./pages/Dashboard').then((module) => ({ default: module.DashboardPage })));
+const UserListPage = lazy(() => import('./pages/users/UserList').then((module) => ({ default: module.UserListPage })));
+const UserDetailPage = lazy(() => import('./pages/users/UserDetail').then((module) => ({ default: module.UserDetailPage })));
+const CategoryListPage = lazy(() => import('./pages/categories/CategoryList').then((module) => ({ default: module.CategoryListPage })));
+const ProductListPage = lazy(() => import('./pages/products/ProductList').then((module) => ({ default: module.ProductListPage })));
+const ProductDetailPage = lazy(() => import('./pages/products/ProductDetail').then((module) => ({ default: module.ProductDetailPage })));
+const OrderListPage = lazy(() => import('./pages/orders/OrderList').then((module) => ({ default: module.OrderListPage })));
+const OrderDetailPage = lazy(() => import('./pages/orders/OrderDetail').then((module) => ({ default: module.OrderDetailPage })));
+const PaymentListPage = lazy(() => import('./pages/payments/PaymentList').then((module) => ({ default: module.PaymentListPage })));
+const LicenseListPage = lazy(() => import('./pages/licenses/LicenseList').then((module) => ({ default: module.LicenseListPage })));
+const ReviewListPage = lazy(() => import('./pages/reviews/ReviewList').then((module) => ({ default: module.ReviewListPage })));
+const ReportListPage = lazy(() => import('./pages/reports/ReportList').then((module) => ({ default: module.ReportListPage })));
+const WalletListPage = lazy(() => import('./pages/wallets/WalletList').then((module) => ({ default: module.WalletListPage })));
 
 const queryClient = new QueryClient();
 
@@ -23,6 +26,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+      <Suspense fallback={<div className="p-8 text-sm text-slate-500">Đang tải...</div>}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -46,9 +50,11 @@ export default function App() {
           <Route path="licenses" element={<LicenseListPage />} />
           <Route path="reviews" element={<ReviewListPage />} />
           <Route path="reports" element={<ReportListPage />} />
+          <Route path="wallets" element={<WalletListPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      </Suspense>
     </QueryClientProvider>
   );
 }

@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
+import { logout as logoutAdmin } from "../api/auth";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
@@ -11,10 +12,19 @@ const navItems = [
   { to: "/licenses", label: "License" },
   { to: "/reviews", label: "Đánh giá" },
   { to: "/reports", label: "Report vi phạm" },
+  { to: "/wallets", label: "Ví & escrow" },
 ];
 
 export function Layout() {
-  const { user, logout } = useAuthStore();
+  const { user, refreshToken, logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    try {
+      await logoutAdmin(refreshToken ?? undefined);
+    } finally {
+      logout();
+    }
+  };
 
   return (
     <div className="flex min-h-screen bg-slate-100 text-slate-800">
@@ -69,7 +79,7 @@ export function Layout() {
             </div>
             <button
               type="button"
-              onClick={logout}
+              onClick={handleLogout}
               className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
             >
               Đăng xuất

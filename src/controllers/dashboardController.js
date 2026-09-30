@@ -43,19 +43,24 @@ exports.revenueStats = async (req, res, next) => {
     // Admin revenue overview: total revenue, revenue by day/month
     const { period = 'total', page = 1, pageSize = 50 } = req.query; // period: total|day|month
     if (period === 'total') {
-      const row = await OrderItem.findOne({ attributes: [[fn('SUM', literal('price*quantity')), 'totalRevenue']] });
-      return res.json({ success: true, data: { totalRevenue: row.get('totalRevenue') || 0 } });
+      const row = await OrderItem.findOne({
+        attributes: [[fn('SUM', literal('price * quantity')), 'totalRevenue']],
+        include: [{ model: Order, where: { status: 'paid' }, attributes: [] }],
+        raw: true,
+      });
+      return res.json({ success: true, data: { totalRevenue: row?.totalRevenue || 0 } });
     }
 
-    // grouping
-    let dateExpr;
-    if (period === 'day') dateExpr = fn('DATE', col('Order.createdAt'));
-    else dateExpr = literal("DATE_FORMAT(\"Order\".\"createdAt\", '%Y-%m')");
+    if (!['day', 'month'].includes(period)) {
+      return res.status(400).json({ success: false, message: 'period must be total, day or month' });
+    }
 
-    const sql = `SELECT ${period === 'day' ? 'DATE(\"Order\".\"createdAt\")' : "DATE_FORMAT(\"Order\".\"createdAt\", '%Y-%m')"} as period, SUM(oi.price*oi.quantity) as total
-      FROM \"OrderItems\" oi
-      JOIN \"Orders\" \"Order\" ON \"Order\".id = oi.\"orderId\"
-      WHERE \"Order\".status = 'paid'
+    const dateExpr = period === 'day' ? 'DATE(o.createdAt)' : "DATE_FORMAT(o.createdAt, '%Y-%m')";
+
+    const sql = `SELECT ${dateExpr} AS period, SUM(oi.price * oi.quantity) AS total
+      FROM OrderItems oi
+      JOIN Orders o ON o.id = oi.orderId
+      WHERE o.status = 'paid'
       GROUP BY period
       ORDER BY period DESC
       LIMIT :limit OFFSET :offset`;

@@ -2,11 +2,10 @@ import api from './client';
 import type { ApiResponse } from '../types/auth';
 
 export interface CategoryRecord {
-  id: number;
+  id: string;
   name: string;
   slug?: string;
   description?: string;
-  status?: 'active' | 'inactive';
   createdAt?: string;
 }
 
@@ -20,12 +19,12 @@ export const createCategory = async (payload: { name: string; description?: stri
   return response.data;
 };
 
-export const updateCategory = async (id: number, payload: { name: string; description?: string }) => {
+export const updateCategory = async (id: string, payload: { name: string; description?: string }) => {
   const response = await api.put<ApiResponse<CategoryRecord>>(`/categories/${id}`, payload);
   return response.data;
 };
 
-export const deleteCategory = async (id: number) => {
+export const deleteCategory = async (id: string) => {
   const response = await api.delete<ApiResponse<null>>(`/categories/${id}`);
   return response.data;
 };

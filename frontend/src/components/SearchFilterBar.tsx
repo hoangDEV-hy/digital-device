@@ -24,13 +24,15 @@ export function SearchFilterBar({
           placeholder={placeholder}
         />
       </div>
-      <button
-        type="button"
-        onClick={onFilterClick}
-        className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-      >
-        {filterLabel}
-      </button>
+      {onFilterClick && (
+        <button
+          type="button"
+          onClick={onFilterClick}
+          className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          {filterLabel}
+        </button>
+      )}
     </div>
   );
 }

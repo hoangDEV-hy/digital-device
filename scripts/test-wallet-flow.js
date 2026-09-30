@@ -2,6 +2,9 @@ const assert = require('assert');
 
 const paymentController = require('../src/controllers/paymentController');
 const walletController = require('../src/controllers/walletController');
+const { addMoney } = require('../src/utils/money');
+
+assert.strictEqual(addMoney('0.01', 500000), 500000.01, 'adding a deposit to a DECIMAL string must use numeric addition');
 
 const orderItems = [
   { productId: 'p1', price: 100000, quantity: 1, Product: { sellerId: 'seller-a' } },

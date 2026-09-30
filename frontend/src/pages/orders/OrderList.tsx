@@ -1,20 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { DataTable } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
-import { getOrders, type OrderRecord, type OrderStatus } from '../../api/orders';
-
-interface OrderRow {
-  id: number;
-  customerName: string;
-  productName: string;
-  totalAmount: number;
-  status: OrderStatus;
-  paymentMethod: string;
-  createdAt: string;
-}
+import { getOrders, releaseEligibleEscrow, type OrderRecord, type OrderStatus } from '../../api/orders';
 
 const statusLabels: Record<OrderStatus, string> = {
   pending: 'Pending',
@@ -35,17 +26,22 @@ export function OrderListPage() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'all' | OrderStatus>('all');
   const [page, setPage] = useState(1);
-  const pageSize = 4;
+  const pageSize = 10;
+  const [loading, setLoading] = useState(true);
+  const [releasing, setReleasing] = useState(false);
 
-  useEffect(() => { getOrders().then((response) => setOrders(response.data ?? [])); }, []);
+  useEffect(() => {
+    getOrders().then((response) => setOrders(response.data ?? [])).finally(() => setLoading(false));
+  }, []);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     return orders.filter((order) => {
-      const matchesQuery = !normalized || `${order.id} ${order.customerName ?? ''} ${order.totalAmount}`.toLowerCase().includes(normalized);
+      const productTitles = order.OrderItems?.map((item) => item.Product?.title ?? '').join(' ') ?? '';
+      const matchesQuery = !normalized || `${order.id} ${order.User?.fullName ?? ''} ${order.User?.email ?? ''} ${productTitles} ${order.totalAmount}`.toLowerCase().includes(normalized);
       return matchesQuery && (status === 'all' || order.status === status);
     });
-  }, [query, status]);
+  }, [orders, query, status]);
 
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
@@ -59,19 +55,32 @@ export function OrderListPage() {
     setPage(1);
   };
 
+  const releaseEscrowBatch = async () => {
+    setReleasing(true);
+    try {
+      const response = await releaseEligibleEscrow();
+      toast.success(`Đã xử lý ${response.data?.releasedCount ?? 0} đơn đủ điều kiện`);
+      const ordersResponse = await getOrders();
+      setOrders(ordersResponse.data ?? []);
+    } finally {
+      setReleasing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Orders</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-800">Quản lý đơn hàng</h1>
+        </div>
+        <button type="button" disabled={releasing} onClick={releaseEscrowBatch} className="rounded-lg border border-orange-200 bg-white px-3 py-2 text-sm font-medium text-orange-700 disabled:opacity-50">{releasing ? 'Đang xử lý...' : 'Nhả escrow đủ điều kiện'}</button>
       </div>
 
       <SearchFilterBar
         query={query}
         onQueryChange={updateQuery}
-        placeholder="Tìm theo mã đơn, khách hàng, sản phẩm..."
-        filterLabel="Bộ lọc trạng thái"
-        onFilterClick={() => updateStatus(status === 'all' ? 'pending' : 'all')}
+        placeholder="Tìm theo mã đơn, khách hàng hoặc sản phẩm..."
       />
 
       <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -89,15 +98,17 @@ export function OrderListPage() {
 
       <DataTable
         columns={[
-          { key: 'customerName', header: 'Khách hàng', render: (row) => <div className="font-medium text-slate-800">{row.customerName ?? '-'}</div> },
-          { key: 'totalAmount', header: 'Tổng tiền', render: (row) => <span className="font-medium text-slate-700">{row.totalAmount.toLocaleString('vi-VN')}đ</span> },
+          { key: 'id', header: 'Mã đơn', render: (row) => <span className="font-mono text-xs text-slate-600">{row.id.slice(0, 8)}</span> },
+          { key: 'User', header: 'Khách hàng', render: (row) => <div><div className="font-medium text-slate-800">{row.User?.fullName ?? '—'}</div><div className="text-xs text-slate-500">{row.User?.email ?? row.userId}</div></div> },
+          { key: 'OrderItems', header: 'Sản phẩm', render: (row) => <div className="max-w-xs truncate">{row.OrderItems?.map((item) => item.Product?.title).filter(Boolean).join(', ') || '—'}</div> },
+          { key: 'totalAmount', header: 'Tổng tiền', render: (row) => <span className="font-medium text-slate-700">{Number(row.totalAmount).toLocaleString('vi-VN')}đ</span> },
           { key: 'status', header: 'Trạng thái', render: (row) => <StatusBadge label={statusLabels[row.status]} tone={statusTones[row.status]} /> },
-          { key: 'paymentMethod', header: 'Thanh toán', render: () => '-' },
           { key: 'createdAt', header: 'Thời gian' },
-          { key: 'actions', header: 'Thao tác', render: (row) => <Link to={`/orders/${row.id}`} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50">Chi tiết</Link> },
+          { key: 'actions', header: 'Chi tiết', render: (row) => <Link to={`/orders/${row.id}`} className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700">Mở</Link> },
         ]}
         data={paginated}
         rowNumberOffset={(page - 1) * pageSize}
+        loading={loading}
       />
 
       <Pagination page={page} pageSize={pageSize} total={filtered.length} onPageChange={setPage} />

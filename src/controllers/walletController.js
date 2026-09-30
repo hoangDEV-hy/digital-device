@@ -1,5 +1,6 @@
 const { Wallet, WalletTransaction, User, Order, OrderItem, Product, Notification, License } = require('../models');
 const { Op } = require('sequelize');
+const { addMoney } = require('../utils/money');
 
 const DEFAULT_MIN_DEPOSIT = 100000;
 const MIN_WITHDRAWAL = 10000;
@@ -115,7 +116,7 @@ exports.depositFunds = async (req, res, next) => {
     }
 
     const wallet = await ensureWallet(req.user.id);
-    wallet.balance = toMoney((wallet.balance || 0) + amountNum);
+    wallet.balance = addMoney(wallet.balance, amountNum);
     await wallet.save();
 
     await WalletTransaction.create({
@@ -375,7 +376,7 @@ exports.releaseEscrowAfterSevenDays = async (req, res, next) => {
         const sellerReceived = toMoney(releaseAmount - platformFee);
 
         wallet.escrowBalance = toMoney((wallet.escrowBalance || 0) - releaseAmount);
-        wallet.balance = toMoney((wallet.balance || 0) + sellerReceived);
+        wallet.balance = addMoney(wallet.balance, sellerReceived);
         await wallet.save();
 
         await WalletTransaction.create({
@@ -495,7 +496,7 @@ exports.adminHandleRefund = async (req, res, next) => {
     const result = await exports.processReturn({
       user: { id: order.userId },
       body: { ...refundReq, returnType: (new Date(refundReq.requestedAt).getTime() - new Date(order.createdAt).getTime()) < SEVEN_DAYS_MS ? 'before_7_days' : 'after_7_days' }
-    }, { status: () => ({ json: (payload) => payload }) }, next);
+    }, { status: () => ({ json: (payload) => payload }), json: (payload) => payload }, next);
 
     if (result && result.success === false) {
       return res.status(400).json(result);

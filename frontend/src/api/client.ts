@@ -70,7 +70,7 @@ api.interceptors.response.use(
         const authState = useAuthStore.getState();
         authState.setAuth(
           authState.user ?? {
-            id: 0,
+            id: "",
             fullName: "Admin",
             email: "",
             role: "admin",
