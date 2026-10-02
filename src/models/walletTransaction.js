@@ -5,7 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     id: { type: DataTypes.UUID, primaryKey: true, defaultValue: () => uuidv4() },
     walletId: { type: DataTypes.UUID, allowNull: false },
     userId: { type: DataTypes.UUID, allowNull: false },
-    type: { type: DataTypes.ENUM('deposit', 'withdrawal', 'escrow_hold', 'escrow_release', 'contract_register', 'contract_cancel', 'refund', 'penalty'), allowNull: false },
+    type: { type: DataTypes.ENUM('deposit', 'withdrawal', 'escrow_hold', 'escrow_release', 'commission', 'contract_register', 'contract_cancel', 'refund', 'penalty'), allowNull: false },
     amount: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0.0 },
     currency: { type: DataTypes.STRING, defaultValue: 'VND' },
     status: { type: DataTypes.ENUM('pending', 'success', 'failed'), defaultValue: 'success' },

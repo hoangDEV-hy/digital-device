@@ -115,6 +115,8 @@ router.get('/approved', productController.getApprovedList);
  */
 router.get('/mine', auth.required, productController.getMyProducts);
 
+router.get('/mine/:productId/sales', auth.required, productController.getSellerProductSales);
+
 /**
  * @swagger
  * /api/products/mine/revenue:

@@ -1,14 +1,20 @@
 const models = require('../models');
-const { Product, Category, User } = models;
+const { Product, Category, User, Order, OrderItem, WalletTransaction } = models;
 const sequelize = models.sequelize;
 const { Op } = require('sequelize');
+const { calculateLineSettlement, COMMISSION_RATE } = require('../utils/commission');
+const toMoney = (value) => Number(parseFloat(value || 0).toFixed(2));
 
 exports.create = async (req, res, next) => {
   try {
     const { title, description, price, categoryId, type, fileUrl, thumbnail } = req.body;
+    const stock = Number(req.body.stock);
+    if (!Number.isSafeInteger(stock) || stock < 0) {
+      return res.status(400).json({ success: false, message: 'Stock must be a non-negative integer' });
+    }
     const wallet = await models.Wallet.findOne({ where: { userId: req.user.id } });
     const depositBalance = Number(wallet?.depositBalance || 0);
-    const minimumDeposit = Number(wallet?.minimumDeposit || 100000);
+    const minimumDeposit = Number(wallet?.minimumDeposit || 50000000);
 
     if (!wallet || wallet.contractStatus !== 'registered' || depositBalance < minimumDeposit) {
       return res.status(403).json({
@@ -17,7 +23,7 @@ exports.create = async (req, res, next) => {
       });
     }
 
-    const product = await Product.create({ title, description, price, categoryId, type, fileUrl, thumbnail, visibility: 'inactive', reviewStatus: 'pending', sellerId: req.user.id });
+    const product = await Product.create({ title, description, price, categoryId, type, fileUrl, thumbnail, stock, visibility: 'inactive', reviewStatus: 'pending', sellerId: req.user.id });
     res.json({ success: true, data: product });
   } catch (err) { next(err); }
 };
@@ -28,6 +34,13 @@ exports.update = async (req, res, next) => {
     const product = await Product.findByPk(productId);
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
     if (product.sellerId !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Forbidden' });
+    if (req.body.stock !== undefined) {
+      const stock = Number(req.body.stock);
+      if (!Number.isSafeInteger(stock) || stock < 0) {
+        return res.status(400).json({ success: false, message: 'Stock must be a non-negative integer' });
+      }
+      product.stock = stock;
+    }
     const fields = ['title', 'description', 'price', 'categoryId', 'type', 'fileUrl', 'thumbnail', 'visibility'];
     fields.forEach(f => { if (req.body[f] !== undefined) product[f] = req.body[f]; });
     await product.save();
@@ -178,6 +191,43 @@ exports.getMyProducts = async (req, res, next) => {
   try {
     const products = await Product.findAll({ where: { sellerId: req.user.id } });
     res.json({ success: true, data: products });
+  } catch (err) { next(err); }
+};
+
+exports.getSellerProductSales = async (req, res, next) => {
+  try {
+    const product = await Product.findOne({ where: { id: req.params.productId, sellerId: req.user.id } });
+    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+    const paidItems = await OrderItem.findAll({
+      where: { productId: product.id },
+      attributes: ['price', 'quantity'],
+      include: [{ model: Order, attributes: ['id'], where: { status: 'paid' }, required: true }],
+    });
+    const paidOrderIds = [...new Set(paidItems.map((item) => item.Order.id))];
+    const commissionTransactions = paidOrderIds.length
+      ? await WalletTransaction.findAll({
+        where: { relatedOrderId: { [Op.in]: paidOrderIds }, type: 'commission', status: 'success' },
+        attributes: ['relatedOrderId'],
+      })
+      : [];
+    const commissionedOrderIds = new Set(commissionTransactions.map((item) => item.relatedOrderId));
+
+    const totals = paidItems.reduce((current, item) => {
+      const line = calculateLineSettlement(item.price, Number(item.quantity || 1));
+      const commission = commissionedOrderIds.has(item.Order.id) ? line.commission : 0;
+      return {
+        unitsSold: current.unitsSold + Number(item.quantity || 1),
+        grossRevenue: toMoney(current.grossRevenue + line.gross),
+        commission: toMoney(current.commission + commission),
+        netRevenue: toMoney(current.netRevenue + line.gross - commission),
+      };
+    }, { unitsSold: 0, grossRevenue: 0, commission: 0, netRevenue: 0 });
+
+    res.json({
+      success: true,
+      data: { productId: product.id, commissionRate: COMMISSION_RATE, ...totals },
+    });
   } catch (err) { next(err); }
 };
 

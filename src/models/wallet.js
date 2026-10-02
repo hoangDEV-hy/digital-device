@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     escrowBalance: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0.0 },
     depositBalance: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 0.0 },
     contractStatus: { type: DataTypes.ENUM('inactive', 'registered', 'suspended'), defaultValue: 'inactive' },
-    minimumDeposit: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 100000.0 },
+    minimumDeposit: { type: DataTypes.DECIMAL(12, 2), allowNull: false, defaultValue: 50000000.0 },
     lastUpdated: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   }, {
     hooks: {

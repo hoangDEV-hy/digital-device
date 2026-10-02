@@ -20,6 +20,8 @@ export type Product = {
   title: string;
   description?: string;
   price: number | string;
+  stock?: number;
+  categoryId?: string;
   type?: string;
   thumbnail?: string;
   fileUrl?: string;
@@ -33,10 +35,20 @@ export type NewProduct = {
   title: string;
   description: string;
   price: number;
+  stock: number;
   categoryId: string;
   type: string;
   fileUrl: string;
   thumbnail?: string;
+};
+
+export type ProductSalesStats = {
+  productId: string;
+  commissionRate: number;
+  unitsSold: number;
+  grossRevenue: number;
+  commission: number;
+  netRevenue: number;
 };
 
 export type CartItem = {
@@ -256,6 +268,15 @@ export const api = {
   productById: (productId: string) => request<{ data: Product }>(`/products/${productId}`),
 
   myProducts: () => request<{ data: Product[] }>('/products/mine'),
+
+  productSales: (productId: string) =>
+    request<{ data: ProductSalesStats }>(`/products/mine/${encodeURIComponent(productId)}/sales`),
+
+  updateProduct: (productId: string, product: Partial<NewProduct>) =>
+    request<{ data: Product }>(`/products/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify(product),
+    }),
 
   createProduct: (product: NewProduct) =>
     request<{ data: Product }>('/products', {

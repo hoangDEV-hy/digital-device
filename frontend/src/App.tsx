@@ -18,6 +18,7 @@ const PaymentListPage = lazy(() => import('./pages/payments/PaymentList').then((
 const LicenseListPage = lazy(() => import('./pages/licenses/LicenseList').then((module) => ({ default: module.LicenseListPage })));
 const ReviewListPage = lazy(() => import('./pages/reviews/ReviewList').then((module) => ({ default: module.ReviewListPage })));
 const ReportListPage = lazy(() => import('./pages/reports/ReportList').then((module) => ({ default: module.ReportListPage })));
+const SellerRevenuePage = lazy(() => import('./pages/reports/SellerRevenue').then((module) => ({ default: module.SellerRevenuePage })));
 const WalletListPage = lazy(() => import('./pages/wallets/WalletList').then((module) => ({ default: module.WalletListPage })));
 const ChatPage = lazy(() => import('./pages/Chat').then((module) => ({ default: module.ChatPage })));
 const WithdrawalRequestsPage = lazy(() => import('./pages/withdrawals/WithdrawalRequests').then((module) => ({ default: module.WithdrawalRequestsPage })));
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="licenses" element={<LicenseListPage />} />
           <Route path="reviews" element={<ReviewListPage />} />
           <Route path="reports" element={<ReportListPage />} />
+          <Route path="seller-revenue" element={<SellerRevenuePage />} />
           <Route path="wallets" element={<WalletListPage />} />
           <Route path="messages" element={<ChatPage />} />
           <Route path="withdrawals" element={<WithdrawalRequestsPage />} />

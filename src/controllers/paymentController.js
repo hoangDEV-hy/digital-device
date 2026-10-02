@@ -1,9 +1,11 @@
-const { Order, OrderItem, Payment, License, Product, Wallet, WalletTransaction, Notification } = require('../models');
+const { sequelize, Order, OrderItem, Payment, License, Product, User, Wallet, WalletTransaction, Notification } = require('../models');
+const { Op } = require('sequelize');
+const { calculateLineSettlement } = require('../utils/commission');
 
 const toMoney = (value) => Number(parseFloat(value || 0).toFixed(2));
 
-const ensureWallet = async (userId) => {
-  let wallet = await Wallet.findOne({ where: { userId } });
+const ensureWallet = async (userId, transaction) => {
+  let wallet = await Wallet.findOne({ where: { userId }, transaction });
   if (!wallet) {
     wallet = await Wallet.create({
       userId,
@@ -11,8 +13,8 @@ const ensureWallet = async (userId) => {
       escrowBalance: 0,
       depositBalance: 0,
       contractStatus: 'inactive',
-      minimumDeposit: 100000,
-    });
+      minimumDeposit: 50000000,
+    }, { transaction });
   }
   return wallet;
 };
@@ -25,14 +27,18 @@ const calculateSellerTotals = (orderItems = []) => {
     const sellerId = product?.sellerId || item.sellerId;
     if (!sellerId) continue;
 
-    const unitPrice = Number(item.price || 0);
     const quantity = Number(item.quantity || 1);
-    const amount = toMoney(unitPrice * quantity);
-    totals[sellerId] = toMoney((totals[sellerId] || 0) + amount);
+    const { sellerNet } = calculateLineSettlement(item.price, quantity);
+    totals[sellerId] = toMoney((totals[sellerId] || 0) + sellerNet);
   }
 
   return totals;
 };
+
+const calculatePlatformCommission = (orderItems = []) => orderItems.reduce((total, item) => {
+  const { commission } = calculateLineSettlement(item.price, Number(item.quantity || 1));
+  return toMoney(total + commission);
+}, 0);
 
 const buildMockPaymentUrl = (orderId, providerTxId) => {
   const txId = providerTxId || `PENDING-${Date.now()}`;
@@ -45,98 +51,137 @@ const canBuyerAfford = (wallet = {}, totalAmount = 0) => {
   return balance >= total;
 };
 
-const createOrderLicenseBatch = async (order, orderItems = []) => {
+const createOrderLicenseBatch = async (order, orderItems = [], transaction) => {
   const created = [];
   for (const item of orderItems) {
-    const existing = await License.findOne({ where: { userId: order.userId, productId: item.productId, orderId: order.id } });
+    const existing = await License.findOne({ where: { userId: order.userId, productId: item.productId, orderId: order.id }, transaction });
     if (!existing) {
-      const license = await License.create({ userId: order.userId, productId: item.productId, orderId: order.id, status: 'active' });
+      const license = await License.create({ userId: order.userId, productId: item.productId, orderId: order.id, status: 'active' }, { transaction });
       created.push(license);
     }
 
-    const product = await Product.findByPk(item.productId);
+    const product = item.Product || await Product.findByPk(item.productId, { transaction });
     if (product) {
-      await Notification.create({ userId: order.userId, type: 'payment_success', channel: 'email', payload: { orderId: order.id, productId: product.id } });
-      await Notification.create({ userId: product.sellerId, type: 'product_sold', channel: 'in-app', payload: { orderId: order.id, productId: product.id } });
+      await Notification.create({ userId: order.userId, type: 'payment_success', channel: 'email', payload: { orderId: order.id, productId: product.id } }, { transaction });
+      await Notification.create({ userId: product.sellerId, type: 'product_sold', channel: 'in-app', payload: { orderId: order.id, productId: product.id } }, { transaction });
     }
   }
 
   return created;
 };
 
-const finalizeSuccessfulOrderPayment = async (order, payment, { topUpBuyerWallet = false } = {}) => {
+const finalizeSuccessfulOrderPayment = async (order, payment, { topUpBuyerWallet = false, providerTxId } = {}) => {
   if (!order) throw new Error('Order not found');
-  if (order.status === 'paid' && payment && payment.status === 'success') {
-    return { order, payment, alreadyProcessed: true };
-  }
-
-  const orderTotal = toMoney(order.totalAmount || 0);
-  const buyerWallet = await ensureWallet(order.userId);
-
-  if (topUpBuyerWallet) {
-    const currentBalance = toMoney(buyerWallet.balance || 0);
-    const missingAmount = Math.max(0, orderTotal - currentBalance);
-
-    if (missingAmount > 0) {
-      buyerWallet.balance = toMoney(currentBalance + missingAmount);
-      await buyerWallet.save();
-      await WalletTransaction.create({
-        walletId: buyerWallet.id,
-        userId: order.userId,
-        type: 'deposit',
-        amount: missingAmount,
-        relatedOrderId: order.id,
-        note: `Top-up for order ${order.id}`,
-        status: 'success',
-      });
+  return sequelize.transaction(async (transaction) => {
+    const currentOrder = await Order.findByPk(order.id, { transaction, lock: transaction.LOCK.UPDATE });
+    const currentPayment = await Payment.findByPk(payment.id, { transaction, lock: transaction.LOCK.UPDATE });
+    if (!currentOrder || !currentPayment) throw new Error('Order or payment not found');
+    if (currentOrder.status === 'paid' && currentPayment.status === 'success') {
+      return { order: currentOrder, payment: currentPayment, alreadyProcessed: true };
     }
-  }
 
-  if (!canBuyerAfford(buyerWallet, orderTotal)) {
-    throw new Error('Buyer balance insufficient to finalize order payment');
-  }
+    const orderItems = await OrderItem.findAll({ where: { orderId: currentOrder.id }, include: [Product], transaction });
+    for (const item of orderItems) {
+      const quantity = Number(item.quantity || 1);
+      if (!Number.isSafeInteger(quantity) || quantity < 1) {
+        const error = new Error('Order contains an invalid product quantity');
+        error.status = 400;
+        throw error;
+      }
+      const [updatedCount] = await Product.update(
+        { stock: sequelize.literal(`stock - ${quantity}`) },
+        { where: { id: item.productId, stock: { [Op.gte]: quantity } }, transaction },
+      );
+      if (updatedCount !== 1) {
+        const error = new Error(`Insufficient stock for ${item.Product?.title || 'a product in this order'}`);
+        error.status = 409;
+        throw error;
+      }
+    }
 
-  buyerWallet.balance = toMoney((Number(buyerWallet.balance || 0) - orderTotal));
-  await buyerWallet.save();
-  await WalletTransaction.create({
-    walletId: buyerWallet.id,
-    userId: order.userId,
-    type: 'withdrawal',
-    amount: orderTotal,
-    relatedOrderId: order.id,
-    note: `Order payment for ${order.id}`,
-    status: 'success',
-  });
+    const orderTotal = toMoney(currentOrder.totalAmount || 0);
+    const buyerWallet = await ensureWallet(currentOrder.userId, transaction);
 
-  const orderItems = await OrderItem.findAll({ where: { orderId: order.id }, include: [Product] });
-  const sellerTotals = calculateSellerTotals(orderItems);
+    if (topUpBuyerWallet) {
+      const currentBalance = toMoney(buyerWallet.balance || 0);
+      const missingAmount = Math.max(0, orderTotal - currentBalance);
 
-  for (const [sellerId, amount] of Object.entries(sellerTotals)) {
-    const sellerWallet = await ensureWallet(sellerId);
-    sellerWallet.escrowBalance = toMoney((Number(sellerWallet.escrowBalance || 0) + amount));
-    await sellerWallet.save();
+      if (missingAmount > 0) {
+        buyerWallet.balance = toMoney(currentBalance + missingAmount);
+        await buyerWallet.save({ transaction });
+        await WalletTransaction.create({
+          walletId: buyerWallet.id,
+          userId: currentOrder.userId,
+          type: 'deposit',
+          amount: missingAmount,
+          relatedOrderId: currentOrder.id,
+          note: `Top-up for order ${currentOrder.id}`,
+          status: 'success',
+        }, { transaction });
+      }
+    }
+
+    if (!canBuyerAfford(buyerWallet, orderTotal)) {
+      throw new Error('Buyer balance insufficient to finalize order payment');
+    }
+
+    buyerWallet.balance = toMoney((Number(buyerWallet.balance || 0) - orderTotal));
+    await buyerWallet.save({ transaction });
     await WalletTransaction.create({
-      walletId: sellerWallet.id,
-      userId: sellerId,
-      type: 'escrow_hold',
-      amount,
-      relatedOrderId: order.id,
-      note: `Escrow hold for order ${order.id}`,
+      walletId: buyerWallet.id,
+      userId: currentOrder.userId,
+      type: 'withdrawal',
+      amount: orderTotal,
+      relatedOrderId: currentOrder.id,
+      note: `Order payment for ${currentOrder.id}`,
       status: 'success',
-    });
-  }
+    }, { transaction });
 
-  order.status = 'paid';
-  await order.save();
+    const sellerTotals = calculateSellerTotals(orderItems);
+    for (const [sellerId, amount] of Object.entries(sellerTotals)) {
+      const sellerWallet = await ensureWallet(sellerId, transaction);
+      sellerWallet.escrowBalance = toMoney((Number(sellerWallet.escrowBalance || 0) + amount));
+      await sellerWallet.save({ transaction });
+      await WalletTransaction.create({
+        walletId: sellerWallet.id,
+        userId: sellerId,
+        type: 'escrow_hold',
+        amount,
+        relatedOrderId: currentOrder.id,
+        note: `Seller net after 2% commission for order ${currentOrder.id}`,
+        status: 'success',
+      }, { transaction });
+    }
 
-  payment.status = 'success';
-  payment.providerTxId = payment.providerTxId || `MOCK-${Date.now()}`;
-  payment.paidAt = new Date();
-  await payment.save();
+    const commissionTotal = calculatePlatformCommission(orderItems);
+    if (commissionTotal > 0) {
+      const admin = await User.findOne({ where: { role: 'admin' }, order: [['createdAt', 'ASC']], transaction });
+      if (!admin) throw new Error('Admin account is required to receive marketplace commission');
+      const adminWallet = await ensureWallet(admin.id, transaction);
+      adminWallet.balance = toMoney(Number(adminWallet.balance || 0) + commissionTotal);
+      await adminWallet.save({ transaction });
+      await WalletTransaction.create({
+        walletId: adminWallet.id,
+        userId: admin.id,
+        type: 'commission',
+        amount: commissionTotal,
+        relatedOrderId: currentOrder.id,
+        note: `2% marketplace commission for order ${currentOrder.id}`,
+        status: 'success',
+      }, { transaction });
+    }
 
-  await createOrderLicenseBatch(order, orderItems);
+    currentOrder.status = 'paid';
+    await currentOrder.save({ transaction });
 
-  return { order, payment, alreadyProcessed: false };
+    currentPayment.status = 'success';
+    currentPayment.providerTxId = providerTxId || currentPayment.providerTxId || `MOCK-${Date.now()}`;
+    currentPayment.paidAt = new Date();
+    await currentPayment.save({ transaction });
+
+    await createOrderLicenseBatch(currentOrder, orderItems, transaction);
+    return { order: currentOrder, payment: currentPayment, alreadyProcessed: false };
+  });
 };
 
 // Create a mock payment for an order (client initiates)
@@ -156,11 +201,11 @@ exports.createPayment = async (req, res, next) => {
 
     if (canBuyerAfford(buyerWallet, orderTotal)) {
       const activePayment = payment || await Payment.create({ orderId, method: method || 'mock', status: 'pending' });
-      await finalizeSuccessfulOrderPayment(order, activePayment, { topUpBuyerWallet: false });
+      const finalized = await finalizeSuccessfulOrderPayment(order, activePayment, { topUpBuyerWallet: false });
       return res.json({
         success: true,
         message: 'Order paid successfully using buyer wallet balance',
-        data: { orderId, paymentId: activePayment.id, status: activePayment.status, totalAmount: orderTotal },
+        data: { orderId, paymentId: activePayment.id, status: finalized.payment.status, totalAmount: orderTotal },
       });
     }
 
@@ -207,16 +252,14 @@ exports.mockIpn = async (req, res, next) => {
       return res.send('OK');
     }
 
-    payment.status = status || payment.status;
-    payment.providerTxId = providerTxId || payment.providerTxId;
-
     if (status === 'success') {
       const topUpBuyerWallet = true;
-      await finalizeSuccessfulOrderPayment(order, payment, { topUpBuyerWallet });
+      await finalizeSuccessfulOrderPayment(order, payment, { topUpBuyerWallet, providerTxId });
       return res.send('OK');
     }
 
     payment.status = 'failed';
+    payment.providerTxId = providerTxId || payment.providerTxId;
     payment.paidAt = null;
     await payment.save();
     return res.send('OK');
@@ -224,5 +267,6 @@ exports.mockIpn = async (req, res, next) => {
 };
 
 exports.calculateSellerTotals = calculateSellerTotals;
+exports.calculatePlatformCommission = calculatePlatformCommission;
 exports.canBuyerAfford = canBuyerAfford;
 exports.buildMockPaymentUrl = buildMockPaymentUrl;

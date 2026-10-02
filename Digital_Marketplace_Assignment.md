@@ -141,7 +141,14 @@ CRUD (chỉ Admin được tạo/sửa/xóa danh mục)-ok
 
 Mỗi sản phẩm thuộc một danh mục.
 
-Ví dụ danh mục: Sách điện tử, Khóa học video, Tài liệu, Template...
+Danh mục ban đầu:
+
+- Học tập & đào tạo
+- Kinh doanh & marketing
+- Thiết kế & sáng tạo
+- Công nghệ & lập trình
+
+Danh mục thể hiện chủ đề/nội dung sản phẩm để người mua dễ tìm kiếm. Định dạng nội dung được lưu riêng ở trường `type`, ví dụ: `ebook`, `video`, `document`, `template`.
 
 ---
 
@@ -153,6 +160,7 @@ Thông tin
 - Tên sản phẩm
 - Mô tả
 - Giá
+- Số lượng tồn kho (`stock`)
 - Danh mục
 - Người bán (seller)
 - Loại sản phẩm (ebook / video / tài liệu...)
@@ -161,6 +169,8 @@ Thông tin
 - Ảnh bìa / thumbnail
 - Trạng thái duyệt (pending / approved / rejected)
 - Trạng thái hiển thị (active / inactive)
+
+Seller có thể xem và cập nhật thông tin, số lượng tồn kho của sản phẩm mình đăng bán. Hệ thống chỉ xác nhận đơn khi còn đủ hàng và trừ tồn kho cùng lúc với thanh toán thành công.
 
 API
 

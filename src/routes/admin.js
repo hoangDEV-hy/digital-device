@@ -256,5 +256,6 @@ router.get('/reports', auth.required, role.requireAdmin, require('../controllers
  *                             $ref: '#/components/schemas/RevenuePeriod'
  */
 router.get('/dashboard/revenue', auth.required, role.requireAdmin, dashboardController.revenueStats);
+router.get('/seller-revenue', auth.required, role.requireAdmin, dashboardController.sellerRevenue);
 
 module.exports = router;

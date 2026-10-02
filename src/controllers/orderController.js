@@ -1,6 +1,7 @@
 const { Order, OrderItem, Product, User, Payment, Cart, CartItem, Wallet, WalletTransaction, Notification } = require('../models');
 const { Op } = require('sequelize');
 const { addMoney } = require('../utils/money');
+const { calculateLineSettlement } = require('../utils/commission');
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const toMoney = (value) => Number(parseFloat(value || 0).toFixed(2));
@@ -14,20 +15,21 @@ const ensureWallet = async (userId) => {
       escrowBalance: 0,
       depositBalance: 0,
       contractStatus: 'inactive',
-      minimumDeposit: 100000,
+      minimumDeposit: 50000000,
     });
   }
   return wallet;
 };
 
-const getSellerBreakdown = (orderItems = []) => {
+const getSellerBreakdown = (orderItems = [], commissionApplied = true) => {
   const totals = {};
   for (const item of orderItems) {
     const product = item.Product || item.product || null;
     const sellerId = product?.sellerId || item.sellerId;
     if (!sellerId) continue;
-    const amount = toMoney((Number(item.price || 0) * Number(item.quantity || 1)));
-    totals[sellerId] = toMoney((totals[sellerId] || 0) + amount);
+    const settlement = calculateLineSettlement(item.price, Number(item.quantity || 1));
+    const sellerAmount = commissionApplied ? settlement.sellerNet : settlement.gross;
+    totals[sellerId] = toMoney((totals[sellerId] || 0) + sellerAmount);
   }
   return totals;
 };
@@ -58,7 +60,11 @@ exports.releaseEscrowForEligibleOrders = async (req, res, next) => {
     const releasedOrders = [];
 
     for (const order of orders) {
-      const sellerTotals = getSellerBreakdown(order.OrderItems || []);
+      const commissionTransaction = await WalletTransaction.findOne({
+        where: { relatedOrderId: order.id, type: 'commission', status: 'success' },
+        attributes: ['id'],
+      });
+      const sellerTotals = getSellerBreakdown(order.OrderItems || [], Boolean(commissionTransaction));
       const perSeller = [];
 
       for (const [sellerId, orderAmount] of Object.entries(sellerTotals)) {
@@ -120,6 +126,8 @@ exports.releaseEscrowForEligibleOrders = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getSellerBreakdown = getSellerBreakdown;
 
 exports.checkoutFromCart = async (req, res, next) => {
   try {

@@ -1,0 +1,1 @@
+import{d as e}from"./index-CW0kFY4R.js";const t=async()=>(await e.get("/orders/all")).data,n=async s=>(await e.get(`/orders/${s}`)).data,o=async()=>(await e.post("/orders/release-escrow")).data,c=async s=>(await e.post("/wallets/admin/refund",s)).data;export{n as a,t as g,c as p,o as r};

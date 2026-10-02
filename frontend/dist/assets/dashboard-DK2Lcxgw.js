@@ -1,0 +1,1 @@
+import{d as a}from"./index-CW0kFY4R.js";const t=async()=>(await a.get("/admin/dashboard/summary")).data,n=async()=>(await a.get("/admin/dashboard/reported-users")).data,o=async(e="total")=>(await a.get("/admin/dashboard/revenue",{params:{period:e,page:1,pageSize:12}})).data,d=async()=>(await a.get("/admin/seller-revenue")).data;export{n as a,o as b,d as c,t as g};

@@ -12,6 +12,7 @@ const navItems = [
   { to: "/licenses", label: "License" },
   { to: "/reviews", label: "Đánh giá" },
   { to: "/reports", label: "Report vi phạm" },
+  { to: "/seller-revenue", label: "Doanh thu seller" },
   { to: "/wallets", label: "Ví & escrow" },
   { to: "/messages", label: "Tin nhắn" },
   { to: "/withdrawals", label: "Duyệt rút tiền" },

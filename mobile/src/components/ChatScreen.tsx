@@ -164,6 +164,9 @@ export function ChatScreen({ userId, initialContact, onInitialHandled, onThreadC
     .find((participant) => participant.id !== userId)?.fullName || 'Hội thoại';
   const supportContact = contacts.find((contact) => contact.user.role === 'admin');
   const marketplaceContacts = contacts.filter((contact) => contact.user.role !== 'admin');
+  const visibleConversations = conversations.filter((conversation) =>
+    !conversation.participants.some((participant) => participant.user.id !== userId && participant.user.role === 'admin'),
+  );
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={chatColors.orange} /></View>;
 
@@ -232,9 +235,9 @@ export function ChatScreen({ userId, initialContact, onInitialHandled, onThreadC
       <FlatList
         style={styles.conversationList}
         contentContainerStyle={styles.listContent}
-        data={conversations}
+        data={visibleConversations}
         keyExtractor={(conversation) => conversation.id}
-        ListEmptyComponent={<Text style={styles.emptyMessages}>Chưa có hội thoại. Chọn người bán hoặc người mua bên dưới để bắt đầu.</Text>}
+        ListEmptyComponent={conversations.length > 0 && visibleConversations.length === 0 ? null : <Text style={styles.emptyMessages}>Chưa có hội thoại. Chọn người bán hoặc người mua bên dưới để bắt đầu.</Text>}
         renderItem={({ item }) => (
           <Pressable onPress={() => void openConversation(item)} style={styles.conversationRow}>
             <View style={styles.avatar}><Text style={styles.avatarText}>{conversationTitle(item).slice(0, 1).toUpperCase()}</Text></View>

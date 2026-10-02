@@ -2,7 +2,7 @@ const { sequelize, Wallet, WalletTransaction, WithdrawalRequest, User, Order, Or
 const { Op } = require('sequelize');
 const { addMoney } = require('../utils/money');
 
-const DEFAULT_MIN_DEPOSIT = 100000;
+const DEFAULT_MIN_DEPOSIT = 50000000;
 const MIN_WITHDRAWAL = 10000;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 

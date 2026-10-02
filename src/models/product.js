@@ -6,6 +6,7 @@ module.exports = (sequelize, DataTypes) => {
     title: { type: DataTypes.STRING, allowNull: false },
     description: { type: DataTypes.TEXT },
     price: { type: DataTypes.DECIMAL(10,2), allowNull: false, defaultValue: 0.0 },
+    stock: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
     type: { type: DataTypes.STRING },
     fileUrl: { type: DataTypes.STRING },
     thumbnail: { type: DataTypes.STRING },

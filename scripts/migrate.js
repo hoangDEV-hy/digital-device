@@ -15,10 +15,17 @@ async function ensureOrderColumns() {
   }
 }
 
+async function updateInactiveSellerDepositMinimum() {
+  await sequelize.query('UPDATE Wallets SET minimumDeposit = 50000000 WHERE contractStatus != ? AND minimumDeposit = ?', {
+    replacements: ['registered', 100000],
+  });
+}
+
 (async () => {
   try {
     await ensureOrderColumns();
     await sequelize.sync({ alter: true });
+    await updateInactiveSellerDepositMinimum();
     console.log('Migrations applied (sync alter)');
     process.exit(0);
   } catch (err) {

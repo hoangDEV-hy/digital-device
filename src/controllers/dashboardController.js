@@ -1,5 +1,6 @@
-const { User, Product, Report, OrderItem, Order } = require('../models');
+const { User, Product, Report, OrderItem, Order, WalletTransaction } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
+const { buildSellerRevenueReport } = require('../utils/commission');
 
 exports.summary = async (req, res, next) => {
   try {
@@ -69,6 +70,54 @@ exports.revenueStats = async (req, res, next) => {
     const offset = (parseInt(page)-1) * limit;
     const results = await OrderItem.sequelize.query(sql, { replacements: { limit, offset }, type: OrderItem.sequelize.QueryTypes.SELECT });
     res.json({ success: true, data: { period, items: results, page: parseInt(page), pageSize: limit } });
+  } catch (err) { next(err); }
+};
+
+exports.sellerRevenue = async (req, res, next) => {
+  try {
+    const sellerProducts = await Product.findAll({ attributes: ['sellerId'], group: ['sellerId'], raw: true });
+    const sellerIds = [...new Set(sellerProducts.map((product) => product.sellerId).filter(Boolean))];
+    const sellers = sellerIds.length
+      ? await User.findAll({
+        where: { id: { [Op.in]: sellerIds }, role: 'customer' },
+        attributes: ['id', 'fullName', 'email'],
+      })
+      : [];
+
+    const paidOrderItems = await OrderItem.findAll({
+      attributes: ['orderId', 'price', 'quantity'],
+      include: [
+        { model: Order, attributes: [], where: { status: 'paid' }, required: true },
+        {
+          model: Product,
+          attributes: ['sellerId'],
+          required: true,
+          include: [{ model: User, as: 'seller', attributes: ['id', 'fullName', 'email'] }],
+        },
+      ],
+    });
+    const paidOrderIds = [...new Set(paidOrderItems.map((item) => item.orderId))];
+    const commissionTransactions = paidOrderIds.length
+      ? await WalletTransaction.findAll({
+        where: { relatedOrderId: { [Op.in]: paidOrderIds }, type: 'commission', status: 'success' },
+        attributes: ['relatedOrderId', 'amount'],
+      })
+      : [];
+    const report = buildSellerRevenueReport(
+      sellers.map((seller) => ({ id: seller.id, fullName: seller.fullName, email: seller.email })),
+      paidOrderItems.map((item) => ({
+        orderId: item.orderId,
+        price: item.price,
+        quantity: item.quantity,
+        product: {
+          sellerId: item.Product?.sellerId,
+          seller: item.Product?.seller,
+        },
+      })),
+      commissionTransactions,
+    );
+
+    res.json({ success: true, data: report });
   } catch (err) { next(err); }
 };
 

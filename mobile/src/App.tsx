@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as DocumentPicker from 'expo-document-picker';
+import { Asset } from 'expo-asset';
+import * as Sharing from 'expo-sharing';
 import {
   ActivityIndicator,
   Alert,
@@ -17,7 +19,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { API_URL, api, Cart, NewProduct, Product, ProductReview, User, Wallet, WithdrawalRequest, hasSession, saveSession } from './api';
+import { API_URL, api, Cart, NewProduct, Product, ProductReview, ProductSalesStats, User, Wallet, WithdrawalRequest, hasSession, saveSession } from './api';
 import { ChatScreen } from './components/ChatScreen';
 
 type TabKey = 'home' | 'cart' | 'orders' | 'library' | 'chat' | 'profile';
@@ -36,6 +38,8 @@ const colors = {
 };
 
 const money = (value: number | string | undefined) => `${Number(value ?? 0).toLocaleString('vi-VN')} đ`;
+const MINIMUM_SELLER_DEPOSIT = 50000000;
+const SELLER_CONTRACT_RETURN_ADDRESS = 'Nà Ná Na Na, Hưng Yên';
 const GUEST_HOME_KEY = 'dm_guest_home';
 const API_ORIGIN = API_URL.replace(/\/api\/?$/, '');
 const TRANSFER_QR_URL = 'https://img.vietqr.io/image/TCB-8928929725-compact2.png?accountName=PHAM%20HUNG%20SANG';
@@ -49,6 +53,43 @@ function Button({ label, onPress, secondary = false }: { label: string; onPress:
     <Pressable onPress={onPress} style={[styles.button, secondary && styles.buttonSecondary]}>
       <Text style={[styles.buttonText, secondary && styles.buttonTextSecondary]}>{label}</Text>
     </Pressable>
+  );
+}
+
+function SellerContractNotice() {
+  const [opening, setOpening] = useState(false);
+
+  const openContract = async () => {
+    setOpening(true);
+    try {
+      if (!await Sharing.isAvailableAsync()) {
+        Alert.alert('Không thể mở hợp đồng', 'Thiết bị hiện không hỗ trợ chia sẻ file.');
+        return;
+      }
+      const asset = Asset.fromModule(require('../assets/Hop_dong_ky_quy_seller.docx'));
+      const downloaded = await asset.downloadAsync();
+      if (!downloaded.localUri) throw new Error('Không tải được file hợp đồng.');
+      await Sharing.shareAsync(downloaded.localUri, {
+        mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        dialogTitle: 'Hợp đồng ký quỹ seller',
+        UTI: 'org.openxmlformats.wordprocessingml.document',
+      });
+    } catch (error) {
+      Alert.alert('Không mở được hợp đồng', error instanceof Error ? error.message : 'Vui lòng thử lại.');
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  return (
+    <View style={styles.sellerContractNotice}>
+      <Pressable style={styles.sellerContractButton} onPress={() => void openContract()} disabled={opening} accessibilityRole="button">
+        <Ionicons name="document-text-outline" size={18} color={colors.ink} />
+        <Text style={styles.sellerContractButtonText}>{opening ? 'Đang mở hợp đồng...' : 'Mở / tải hợp đồng ký quỹ'}</Text>
+      </Pressable>
+      <Text style={styles.sellerContractText}>Điền và ký hợp đồng, in 02 bản: Admin giữ 01 bản, Seller giữ 01 bản.</Text>
+      <Text style={styles.sellerContractText}>Gửi bản đã ký về: {SELLER_CONTRACT_RETURN_ADDRESS}</Text>
+    </View>
   );
 }
 
@@ -910,7 +951,7 @@ function ProfileScreen({
   };
 
   const registerContract = async () => {
-    const minimum = Number(wallet?.minimumDeposit || 100000);
+    const minimum = Number(wallet?.minimumDeposit || MINIMUM_SELLER_DEPOSIT);
     setBusy(true);
     try {
       const result = await api.registerSellerContract(minimum);
@@ -969,7 +1010,8 @@ function ProfileScreen({
         )}
         {!contractRegistered && (
           <>
-            <Text style={styles.contractHint}>Cần ký quỹ tối thiểu {money(wallet?.minimumDeposit || 100000)} để đăng bán sản phẩm.</Text>
+            <Text style={styles.contractHint}>Cần ký quỹ tối thiểu {money(wallet?.minimumDeposit || MINIMUM_SELLER_DEPOSIT)} để đăng bán sản phẩm.</Text>
+            <SellerContractNotice />
             <Pressable style={styles.walletActionSecondary} onPress={registerContract} disabled={busy}>
               <Text style={styles.walletActionSecondaryText}>{busy ? 'Đang xử lý...' : 'Đăng ký seller'}</Text>
             </Pressable>
@@ -1121,7 +1163,7 @@ function WalletTopUpScreen({
   onBack: () => void;
   initialAmount?: number;
 }) {
-  const [amount, setAmount] = useState(String(initialAmount || 100000));
+  const [amount, setAmount] = useState(String(initialAmount || MINIMUM_SELLER_DEPOSIT));
   const [busy, setBusy] = useState(false);
   const contractRegistered = wallet?.contractStatus === 'registered';
   const topUp = async () => {
@@ -1143,7 +1185,7 @@ function WalletTopUpScreen({
   };
 
   const registerSeller = async () => {
-    const minimum = Number(wallet?.minimumDeposit || 100000);
+    const minimum = Number(wallet?.minimumDeposit || MINIMUM_SELLER_DEPOSIT);
     setBusy(true);
     try {
       const result = await api.registerSellerContract(minimum);
@@ -1184,7 +1226,7 @@ function WalletTopUpScreen({
           style={styles.walletInput}
         />
         <View style={styles.amountPresets}>
-          {[100000, 200000, 500000].map((value) => (
+          {[5000000, 20000000, MINIMUM_SELLER_DEPOSIT].map((value) => (
             <Pressable key={value} style={styles.amountPreset} onPress={() => setAmount(String(value))}>
               <Text style={styles.amountPresetText}>{money(value)}</Text>
             </Pressable>
@@ -1198,7 +1240,8 @@ function WalletTopUpScreen({
       {!contractRegistered && (
         <View style={styles.sellerCallout}>
           <Text style={styles.sellerCalloutTitle}>Bạn muốn đăng bán?</Text>
-          <Text style={styles.sellerCalloutBody}>Ký quỹ tối thiểu {money(wallet?.minimumDeposit || 100000)}. Số tiền này sẽ được chuyển từ số dư ví sang tiền ký quỹ.</Text>
+          <Text style={styles.sellerCalloutBody}>Ký quỹ tối thiểu {money(wallet?.minimumDeposit || MINIMUM_SELLER_DEPOSIT)}. Số tiền này sẽ được chuyển từ số dư ví sang tiền ký quỹ.</Text>
+          <SellerContractNotice />
           <Pressable style={styles.walletActionSecondary} onPress={registerSeller} disabled={busy}>
             <Text style={styles.walletActionSecondaryText}>{busy ? 'Đang xử lý...' : 'Đăng ký hợp đồng seller'}</Text>
           </Pressable>
@@ -1208,16 +1251,79 @@ function WalletTopUpScreen({
   );
 }
 
+function SellerProductSalesScreen({
+  product,
+  onBack,
+  onEdit,
+}: {
+  product: Product;
+  onBack: () => void;
+  onEdit: () => void;
+}) {
+  const [stats, setStats] = useState<ProductSalesStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    api.productSales(product.id)
+      .then((result) => { if (active) setStats(result.data); })
+      .catch((error) => Alert.alert('Không tải được thống kê', error instanceof Error ? error.message : 'Vui lòng thử lại.'))
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [product.id]);
+
+  return (
+    <ScrollView contentContainerStyle={styles.content}>
+      <Pressable style={styles.backHeader} onPress={onBack} accessibilityRole="button">
+        <Ionicons name="arrow-back" size={20} color={colors.ink} />
+        <Text style={styles.backText}>Sản phẩm của bạn</Text>
+      </Pressable>
+      <Text style={styles.pageTitle}>{product.title}</Text>
+      <Text style={styles.sellerIntro}>{money(product.price)} · Tồn kho: {product.stock ?? 0}</Text>
+
+      <View style={styles.sellerSalesSection}>
+        <Text style={styles.sectionTitle}>Kết quả bán hàng</Text>
+        {loading ? <ActivityIndicator color={colors.orange} style={styles.loader} /> : stats ? (
+          <>
+            <View style={styles.sellerSalesRow}>
+              <Text style={styles.sellerSalesLabel}>Số lượng đã bán</Text>
+              <Text style={styles.sellerSalesValue}>{stats.unitsSold}</Text>
+            </View>
+            <View style={styles.sellerSalesRow}>
+              <Text style={styles.sellerSalesLabel}>Doanh thu gộp</Text>
+              <Text style={styles.sellerSalesValue}>{money(stats.grossRevenue)}</Text>
+            </View>
+            <View style={styles.sellerSalesRow}>
+              <Text style={styles.sellerSalesLabel}>Chiết khấu nền tảng ({(stats.commissionRate * 100).toFixed(0)}%)</Text>
+              <Text style={styles.sellerSalesDeduction}>−{money(stats.commission)}</Text>
+            </View>
+            <View style={[styles.sellerSalesRow, styles.sellerSalesTotal]}>
+              <Text style={styles.sellerSalesTotalLabel}>Seller thực nhận (98%)</Text>
+              <Text style={styles.sellerSalesTotalValue}>{money(stats.netRevenue)}</Text>
+            </View>
+            <Text style={styles.sellerSalesNote}>Tiền đơn hàng được giữ trong escrow 7 ngày trước khi chuyển vào số dư ví.</Text>
+          </>
+        ) : null}
+      </View>
+      <Button label="Chỉnh sửa sản phẩm" onPress={onEdit} secondary />
+    </ScrollView>
+  );
+}
+
 function SellerStudioScreen({ onBack }: { onBack: () => void }) {
+  const scrollRef = useRef<ScrollView>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
+  const [stock, setStock] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [productType, setProductType] = useState('ebook');
   const [file, setFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
@@ -1238,6 +1344,29 @@ function SellerStudioScreen({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     void load();
   }, []);
+
+  const resetForm = () => {
+    setEditingProduct(null);
+    setTitle('');
+    setDescription('');
+    setPrice('');
+    setStock('');
+    setFile(null);
+    setThumbnailFile(null);
+  };
+
+  const editProduct = (product: Product) => {
+    setEditingProduct(product);
+    setTitle(product.title);
+    setDescription(product.description || '');
+    setPrice(String(product.price));
+    setStock(String(product.stock ?? 0));
+    setCategoryId(product.categoryId || '');
+    setProductType(product.type || 'ebook');
+    setFile(null);
+    setThumbnailFile(null);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
 
   const chooseFile = async () => {
     try {
@@ -1271,20 +1400,25 @@ function SellerStudioScreen({ onBack }: { onBack: () => void }) {
 
   const submit = async () => {
     const priceValue = Number(price.replace(/[^0-9]/g, ''));
-    if (!title.trim() || !description.trim() || !categoryId || !file || !Number.isFinite(priceValue) || priceValue <= 0) {
-      Alert.alert('Thiếu thông tin', 'Nhập tên, mô tả, giá, chọn danh mục và file sản phẩm trước khi gửi duyệt.');
+    const stockValue = Number(stock);
+    if (!title.trim() || !description.trim() || !categoryId || (!editingProduct && !file) || !Number.isFinite(priceValue) || priceValue <= 0 || !stock.trim() || !Number.isSafeInteger(stockValue) || stockValue < 0) {
+      Alert.alert('Thiếu hoặc sai thông tin', 'Nhập tên, mô tả, giá hợp lệ, danh mục, số lượng tồn hợp lệ và file sản phẩm khi tạo mới.');
       return;
     }
 
     setBusy(true);
-    let stage: 'upload' | 'thumbnail' | 'create' = 'upload';
+    let stage: 'upload' | 'thumbnail' | 'save' = 'upload';
     try {
-      const uploadResult = await api.uploadProductFile(
-        file.uri,
-        file.name,
-        file.mimeType || 'application/octet-stream',
-      );
-      let thumbnailPath: string | undefined;
+      let filePath = editingProduct?.fileUrl;
+      let thumbnailPath = editingProduct?.thumbnail;
+      if (file) {
+        const uploadResult = await api.uploadProductFile(
+          file.uri,
+          file.name,
+          file.mimeType || 'application/octet-stream',
+        );
+        filePath = uploadResult.data.path;
+      }
       if (thumbnailFile) {
         stage = 'thumbnail';
         const thumbnailResult = await api.uploadProductThumbnail(
@@ -1294,30 +1428,32 @@ function SellerStudioScreen({ onBack }: { onBack: () => void }) {
         );
         thumbnailPath = thumbnailResult.data.path;
       }
-      stage = 'create';
+      stage = 'save';
       const payload: NewProduct = {
         title: title.trim(),
         description: description.trim(),
         price: priceValue,
+        stock: stockValue,
         categoryId,
         type: productType,
-        fileUrl: uploadResult.data.path,
+        fileUrl: filePath || '',
         thumbnail: thumbnailPath,
       };
-      await api.createProduct(payload);
-      setTitle('');
-      setDescription('');
-      setPrice('');
-      setFile(null);
-      setThumbnailFile(null);
+      if (editingProduct) {
+        await api.updateProduct(editingProduct.id, payload);
+      } else {
+        await api.createProduct(payload);
+      }
+      const wasEditing = Boolean(editingProduct);
+      resetForm();
       await load();
-      Alert.alert('Đã gửi sản phẩm', 'Sản phẩm đang chờ admin duyệt trước khi hiển thị trên marketplace.');
+      Alert.alert(wasEditing ? 'Đã cập nhật sản phẩm' : 'Đã gửi sản phẩm', wasEditing ? 'Thông tin và tồn kho đã được cập nhật.' : 'Sản phẩm đang chờ admin duyệt trước khi hiển thị trên marketplace.');
     } catch (error) {
       const title = stage === 'upload'
         ? 'Không tải được file sản phẩm'
         : stage === 'thumbnail'
           ? 'Không tải được ảnh thumbnail'
-          : 'Không tạo được sản phẩm';
+          : editingProduct ? 'Không cập nhật được sản phẩm' : 'Không tạo được sản phẩm';
       Alert.alert(title, error instanceof Error ? error.message : 'Vui lòng thử lại');
     } finally {
       setBusy(false);
@@ -1330,8 +1466,18 @@ function SellerStudioScreen({ onBack }: { onBack: () => void }) {
     return 'Chờ admin duyệt';
   };
 
+  if (selectedProduct) {
+    return (
+      <SellerProductSalesScreen
+        product={selectedProduct}
+        onBack={() => setSelectedProduct(null)}
+        onEdit={() => { editProduct(selectedProduct); setSelectedProduct(null); }}
+      />
+    );
+  }
+
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Pressable style={styles.backHeader} onPress={onBack}>
         <Ionicons name="arrow-back" size={20} color={colors.ink} />
         <Text style={styles.backText}>Tài khoản</Text>
@@ -1340,7 +1486,7 @@ function SellerStudioScreen({ onBack }: { onBack: () => void }) {
       <Text style={styles.sellerIntro}>Đăng sản phẩm số. Sản phẩm mới sẽ chỉ được công khai sau khi admin duyệt.</Text>
 
       <View style={styles.sellerForm}>
-        <Text style={styles.sellerFormTitle}>Tạo sản phẩm</Text>
+        <Text style={styles.sellerFormTitle}>{editingProduct ? 'Chỉnh sửa sản phẩm' : 'Tạo sản phẩm'}</Text>
         <Text style={styles.inputLabel}>Tên sản phẩm</Text>
         <TextInput value={title} onChangeText={setTitle} style={styles.walletInput} placeholder="Ví dụ: Bộ template thiết kế" placeholderTextColor={colors.muted} />
 
@@ -1357,6 +1503,9 @@ function SellerStudioScreen({ onBack }: { onBack: () => void }) {
 
         <Text style={styles.inputLabel}>Giá bán (VND)</Text>
         <TextInput value={price} onChangeText={(value) => setPrice(value.replace(/[^0-9]/g, ''))} style={styles.walletInput} placeholder="Ví dụ: 99000" placeholderTextColor={colors.muted} keyboardType="number-pad" />
+
+        <Text style={styles.inputLabel}>Số lượng tồn kho</Text>
+        <TextInput value={stock} onChangeText={(value) => setStock(value.replace(/[^0-9]/g, ''))} style={styles.walletInput} placeholder="Ví dụ: 50" placeholderTextColor={colors.muted} keyboardType="number-pad" />
 
         <Text style={styles.inputLabel}>Danh mục</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sellerOptions}>
@@ -1379,18 +1528,21 @@ function SellerStudioScreen({ onBack }: { onBack: () => void }) {
         <Pressable style={styles.thumbnailPicker} onPress={chooseThumbnail}>
           {thumbnailFile ? (
             <Image source={{ uri: thumbnailFile.uri }} style={styles.thumbnailPreview} />
+          ) : editingProduct?.thumbnail ? (
+            <Image source={{ uri: mediaUrl(editingProduct.thumbnail) }} style={styles.thumbnailPreview} />
           ) : (
             <Ionicons name="image-outline" size={22} color={colors.ink} />
           )}
-          <Text style={styles.filePickerText}>{thumbnailFile?.name || 'Chọn ảnh thumbnail JPG hoặc PNG (tối đa 2 MB)'}</Text>
+          <Text style={styles.filePickerText}>{thumbnailFile?.name || (editingProduct?.thumbnail ? 'Giữ ảnh thumbnail hiện tại hoặc chọn ảnh mới' : 'Chọn ảnh thumbnail JPG hoặc PNG (tối đa 2 MB)')}</Text>
         </Pressable>
         <Pressable style={styles.filePicker} onPress={chooseFile}>
           <Ionicons name="document-attach-outline" size={20} color={colors.ink} />
-          <Text style={styles.filePickerText}>{file?.name || 'Chọn file PDF, EPUB hoặc MP4'}</Text>
+          <Text style={styles.filePickerText}>{file?.name || (editingProduct?.fileUrl ? 'Giữ file sản phẩm hiện tại hoặc chọn file mới' : 'Chọn file PDF, EPUB hoặc MP4')}</Text>
         </Pressable>
         <Pressable style={styles.topUpButton} onPress={submit} disabled={busy}>
-          <Text style={styles.topUpButtonText}>{busy ? 'Đang gửi...' : 'Gửi admin duyệt'}</Text>
+          <Text style={styles.topUpButtonText}>{busy ? 'Đang lưu...' : editingProduct ? 'Lưu thay đổi' : 'Gửi admin duyệt'}</Text>
         </Pressable>
+        {editingProduct && <Button label="Hủy chỉnh sửa" onPress={resetForm} secondary />}
       </View>
 
       <View style={styles.sellerListHeader}>
@@ -1405,13 +1557,20 @@ function SellerStudioScreen({ onBack }: { onBack: () => void }) {
         <Text style={styles.emptyText}>Bạn chưa đăng sản phẩm nào.</Text>
       ) : products.map((product) => (
         <View key={product.id} style={styles.sellerProductRow}>
-          <View style={styles.sellerProductInfo}>
+          <Pressable style={styles.sellerProductInfo} onPress={() => setSelectedProduct(product)}>
             <Text style={styles.productTitle}>{product.title}</Text>
             <Text style={styles.productMeta}>{money(product.price)} · {product.type || 'Sản phẩm số'}</Text>
+            <Text style={styles.productMeta}>Tồn kho: {product.stock ?? 0}</Text>
+          </Pressable>
+          <View style={styles.sellerProductActions}>
+            <Text style={[styles.contractStatus, product.reviewStatus === 'approved' && styles.contractStatusActive, product.reviewStatus === 'rejected' && styles.sellerRejected]}>
+              {reviewLabel(product.reviewStatus)}
+            </Text>
+            <Pressable style={styles.sellerEditButton} onPress={() => editProduct(product)} accessibilityLabel={`Chỉnh sửa ${product.title}`}>
+              <Ionicons name="create-outline" size={16} color={colors.ink} />
+              <Text style={styles.sellerEditButtonText}>Chỉnh sửa</Text>
+            </Pressable>
           </View>
-          <Text style={[styles.contractStatus, product.reviewStatus === 'approved' && styles.contractStatusActive, product.reviewStatus === 'rejected' && styles.sellerRejected]}>
-            {reviewLabel(product.reviewStatus)}
-          </Text>
         </View>
       ))}
     </ScrollView>
@@ -2642,6 +2801,83 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 13,
   },
+  sellerContractNotice: {
+    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    marginTop: 12,
+    paddingTop: 12,
+  },
+  sellerContractButton: {
+    minHeight: 42,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+  },
+  sellerContractButtonText: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  sellerContractText: {
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  sellerSalesSection: {
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  sellerSalesRow: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  sellerSalesLabel: {
+    flex: 1,
+    color: colors.muted,
+    fontSize: 14,
+  },
+  sellerSalesValue: {
+    color: colors.ink,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  sellerSalesDeduction: {
+    color: colors.danger,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  sellerSalesTotal: {
+    borderBottomWidth: 0,
+    marginTop: 4,
+  },
+  sellerSalesTotalLabel: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  sellerSalesTotalValue: {
+    color: colors.orange,
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  sellerSalesNote: {
+    color: colors.muted,
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 10,
+  },
   sellerIntro: {
     color: colors.muted,
     fontSize: 14,
@@ -2747,6 +2983,25 @@ const styles = StyleSheet.create({
   },
   sellerProductInfo: {
     flex: 1,
+  },
+  sellerProductActions: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  sellerEditButton: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 9,
+    paddingHorizontal: 9,
+  },
+  sellerEditButtonText: {
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '700',
   },
   sellerRejected: {
     color: colors.danger,
