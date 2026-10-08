@@ -39,7 +39,11 @@ export const getOrderById = async (id: string) => {
 };
 
 export const releaseEligibleEscrow = async () => {
-  const response = await api.post<ApiResponse<{ releasedCount: number; totalReleased: number }>>('/orders/release-escrow');
+  const response = await api.post<ApiResponse<{
+    releasedCount: number;
+    totalReleased: number;
+    skippedOrders?: Array<{ orderId: string; reason: string }>;
+  }>>('/orders/release-escrow');
   return response.data;
 };
 

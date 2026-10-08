@@ -4,6 +4,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { DataTable } from '../../components/DataTable';
 import { StatusBadge } from '../../components/StatusBadge';
 import { getWithdrawalRequests, reviewWithdrawalRequest, type WithdrawalRequestRecord, type WithdrawalStatus } from '../../api/withdrawals';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 const money = (value: number | string) => `${Number(value).toLocaleString('vi-VN')}đ`;
 const statusLabel: Record<WithdrawalStatus, string> = {
@@ -29,6 +30,7 @@ export function WithdrawalRequestsPage() {
     setLoading(true);
     reload().catch(() => toast.error('Không tải được yêu cầu rút tiền')).finally(() => setLoading(false));
   }, [filter]);
+  useAdminDataRefresh(reload);
 
   const confirmReview = async () => {
     if (!target || !action) return;

@@ -6,6 +6,7 @@ import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
 import { getLicenses, revokeLicense, type LicenseRecord } from '../../api/licenses';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 export function LicenseListPage() {
   const [licenses, setLicenses] = useState<LicenseRecord[]>([]);
@@ -19,6 +20,7 @@ export function LicenseListPage() {
   useEffect(() => {
     getLicenses().then((response) => setLicenses(response.data ?? [])).finally(() => setLoading(false));
   }, []);
+  useAdminDataRefresh(() => getLicenses().then((response) => setLicenses(response.data ?? [])));
 
   const filtered = useMemo(() => licenses.filter((license) => `${license.id} ${license.orderId} ${license.User?.fullName ?? ''} ${license.User?.email ?? ''} ${license.Product?.title ?? ''}`.toLowerCase().includes(query.trim().toLowerCase())), [licenses, query]);
 

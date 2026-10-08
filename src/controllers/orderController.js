@@ -58,23 +58,42 @@ exports.releaseEscrowForEligibleOrders = async (req, res, next) => {
 
     let totalReleased = 0;
     const releasedOrders = [];
+    const skippedOrders = [];
 
     for (const order of orders) {
       const commissionTransaction = await WalletTransaction.findOne({
         where: { relatedOrderId: order.id, type: 'commission', status: 'success' },
         attributes: ['id'],
       });
-      const sellerTotals = getSellerBreakdown(order.OrderItems || [], Boolean(commissionTransaction));
-      const perSeller = [];
+      const sellerTotals = Object.entries(
+        getSellerBreakdown(order.OrderItems || [], Boolean(commissionTransaction)),
+      ).filter(([, amount]) => toMoney(amount) > 0);
+      const releasePlan = [];
 
       for (const [sellerId, orderAmount] of Object.entries(sellerTotals)) {
         const wallet = await ensureWallet(sellerId);
-        const releaseAmount = Math.min(toMoney(orderAmount), toMoney(wallet.escrowBalance || 0));
-
-        if (releaseAmount <= 0) {
-          perSeller.push({ sellerId, releaseAmount: 0, escrowBalance: toMoney(wallet.escrowBalance || 0), note: 'No escrow available' });
-          continue;
+        const releaseAmount = toMoney(orderAmount);
+        const escrowAvailable = toMoney(wallet.escrowBalance || 0);
+        if (escrowAvailable < releaseAmount) {
+          releasePlan.length = 0;
+          skippedOrders.push({
+            orderId: order.id,
+            reason: `Insufficient escrow for seller ${sellerId}: required ${releaseAmount}, available ${escrowAvailable}`,
+          });
+          break;
         }
+        releasePlan.push({ sellerId, wallet, releaseAmount });
+      }
+
+      if (!releasePlan.length) {
+        if (!skippedOrders.some((item) => item.orderId === order.id)) {
+          skippedOrders.push({ orderId: order.id, reason: 'No seller escrow found for this order' });
+        }
+        continue;
+      }
+
+      const perSeller = [];
+      for (const { sellerId, wallet, releaseAmount } of releasePlan) {
 
         wallet.escrowBalance = toMoney((wallet.escrowBalance || 0) - releaseAmount);
         wallet.balance = addMoney(wallet.balance, releaseAmount);
@@ -120,6 +139,7 @@ exports.releaseEscrowForEligibleOrders = async (req, res, next) => {
         releasedCount: releasedOrders.length,
         totalReleased,
         orders: releasedOrders,
+        skippedOrders,
       },
     });
   } catch (err) {

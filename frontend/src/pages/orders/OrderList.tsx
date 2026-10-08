@@ -6,6 +6,7 @@ import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
 import { getOrders, releaseEligibleEscrow, type OrderRecord, type OrderStatus } from '../../api/orders';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 const statusLabels: Record<OrderStatus, string> = {
   pending: 'Pending',
@@ -33,6 +34,7 @@ export function OrderListPage() {
   useEffect(() => {
     getOrders().then((response) => setOrders(response.data ?? [])).finally(() => setLoading(false));
   }, []);
+  useAdminDataRefresh(() => getOrders().then((response) => setOrders(response.data ?? [])));
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -59,7 +61,16 @@ export function OrderListPage() {
     setReleasing(true);
     try {
       const response = await releaseEligibleEscrow();
-      toast.success(`Đã xử lý ${response.data?.releasedCount ?? 0} đơn đủ điều kiện`);
+      const releasedCount = response.data?.releasedCount ?? 0;
+      const totalReleased = Number(response.data?.totalReleased ?? 0);
+      if (releasedCount === 0) {
+        toast('Chưa có đơn đủ điều kiện để nhả escrow.');
+      } else {
+        toast.success(`Đã chuyển ${totalReleased.toLocaleString('vi-VN')}đ vào ví seller từ ${releasedCount} đơn`);
+      }
+      if (response.data?.skippedOrders?.length) {
+        toast.error(`${response.data.skippedOrders.length} đơn chưa nhả được do số dư escrow không đủ hoặc không khớp`);
+      }
       const ordersResponse = await getOrders();
       setOrders(ordersResponse.data ?? []);
     } finally {

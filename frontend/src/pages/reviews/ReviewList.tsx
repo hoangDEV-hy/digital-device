@@ -5,6 +5,7 @@ import { DataTable } from '../../components/DataTable';
 import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { getReviews, deleteReview, type ReviewRecord } from '../../api/reviews';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 export function ReviewListPage() {
   const [reviews, setReviews] = useState<ReviewRecord[]>([]);
@@ -18,6 +19,7 @@ export function ReviewListPage() {
   useEffect(() => {
     getReviews().then((response) => setReviews(response.data ?? [])).finally(() => setLoading(false));
   }, []);
+  useAdminDataRefresh(() => getReviews().then((response) => setReviews(response.data ?? [])));
 
   const filtered = useMemo(() => reviews.filter((review) => `${review.user?.fullName ?? ''} ${review.user?.email ?? ''} ${review.Product?.title ?? ''} ${review.content}`.toLowerCase().includes(query.trim().toLowerCase())), [reviews, query]);
 

@@ -4,6 +4,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import type { DashboardSummary, ReportedUserSummary } from '../api/dashboard';
 import { getDashboardSummary, getReportedUsers, getRevenue } from '../api/dashboard';
 import { StatusBadge } from '../components/StatusBadge';
+import { useAdminDataRefresh } from '../hooks/useAdminDataRefresh';
 
 export function DashboardPage() {
   const [summary, setSummary] = useState<DashboardSummary>();
@@ -12,19 +13,27 @@ export function DashboardPage() {
   const [revenueByMonth, setRevenueByMonth] = useState<Array<{ period: string; total: number }>>([]);
   const [loading, setLoading] = useState(true);
 
+  const refreshDashboard = async () => {
+    const [summaryResponse, reportsResponse, totalResponse, monthlyResponse] = await Promise.all([
+      getDashboardSummary(),
+      getReportedUsers(),
+      getRevenue('total'),
+      getRevenue('month'),
+    ]);
+    setSummary(summaryResponse.data);
+    setReportedUsers(reportsResponse.data?.items ?? []);
+    setRevenueTotal(totalResponse.data?.totalRevenue ?? 0);
+    setRevenueByMonth((monthlyResponse.data?.items ?? []).map((item) => ({
+      period: item.period,
+      total: Number(item.total),
+    })).reverse());
+  };
+
   useEffect(() => {
-    Promise.all([getDashboardSummary(), getReportedUsers(), getRevenue('total'), getRevenue('month')])
-      .then(([summaryResponse, reportsResponse, totalResponse, monthlyResponse]) => {
-        setSummary(summaryResponse.data);
-        setReportedUsers(reportsResponse.data?.items ?? []);
-        setRevenueTotal(totalResponse.data?.totalRevenue ?? 0);
-        setRevenueByMonth((monthlyResponse.data?.items ?? []).map((item) => ({
-          period: item.period,
-          total: Number(item.total),
-        })).reverse());
-      })
+    refreshDashboard()
       .finally(() => setLoading(false));
   }, []);
+  useAdminDataRefresh(refreshDashboard);
 
   const cards = [
     { label: 'Số user mới', value: summary?.newUsers ?? 0, tone: 'info' },

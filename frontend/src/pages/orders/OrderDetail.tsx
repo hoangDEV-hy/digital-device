@@ -5,6 +5,7 @@ import { getOrderById, processAdminRefund, type OrderRecord, type OrderStatus } 
 import api from '../../api/client';
 import type { ApiResponse } from '../../types/auth';
 import { StatusBadge } from '../../components/StatusBadge';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 const statusTone: Record<OrderStatus, 'warning' | 'success' | 'danger' | 'neutral'> = { pending: 'warning', paid: 'success', failed: 'danger', cancelled: 'neutral' };
 
@@ -21,15 +22,16 @@ export function OrderDetailPage() {
   useEffect(() => {
     if (id) reload().finally(() => setLoading(false));
   }, [id]);
+  useAdminDataRefresh(reload);
 
   const releaseEscrow = async () => {
     if (!order) return;
     setBusy(true);
     try {
-      const response = await api.post<ApiResponse<unknown>>('/wallets/escrow/release', { orderId: order.id });
+      const response = await api.post<ApiResponse<{ totalReleased: number }>>('/wallets/escrow/release', { orderId: order.id });
       if (!response.data.success) throw new Error(response.data.message || 'Không thể nhả escrow');
       await reload();
-      toast.success('Đã xử lý nhả escrow');
+      toast.success(`Đã chuyển ${Number(response.data.data?.totalReleased ?? 0).toLocaleString('vi-VN')}đ vào ví seller`);
     } finally {
       setBusy(false);
     }

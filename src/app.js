@@ -33,6 +33,20 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+app.use((req, res, next) => {
+  res.once("finish", () => {
+    const isMutation = ["POST", "PUT", "PATCH", "DELETE"].includes(req.method);
+    const isSuccessful = res.statusCode >= 200 && res.statusCode < 300;
+    const isExcludedRoute =
+      req.path.startsWith("/api/auth") || req.path.startsWith("/api/chat");
+
+    if (isMutation && isSuccessful && !isExcludedRoute) {
+      app.get("io")?.to("admins").emit("admin:data:changed");
+    }
+  });
+  next();
+});
+
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/auth", authRoutes);

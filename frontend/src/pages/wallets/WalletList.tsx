@@ -5,6 +5,7 @@ import { DataTable } from '../../components/DataTable';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
 import { getAdminWallets, resumeSeller, suspendSeller, updateWallet, type WalletRecord, type WalletUpdateType } from '../../api/wallets';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 const money = (value: number | string) => `${Number(value).toLocaleString('vi-VN')}đ`;
 
@@ -27,6 +28,7 @@ export function WalletListPage() {
   useEffect(() => {
     reload().finally(() => setLoading(false));
   }, []);
+  useAdminDataRefresh(reload);
 
   const submitUpdate = async () => {
     if (!target || !Number.isFinite(Number(amount)) || Number(amount) <= 0) {

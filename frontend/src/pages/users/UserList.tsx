@@ -6,6 +6,7 @@ import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
 import { getUsers, lockUser, resetDeviceIp, unlockUser, type UserRecord } from '../../api/users';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 import { useAuthStore } from '../../store/authStore';
 
 export function UserListPage() {
@@ -20,6 +21,7 @@ export function UserListPage() {
   useEffect(() => {
     getUsers().then((response) => setUsers(response.data ?? [])).finally(() => setLoading(false));
   }, []);
+  useAdminDataRefresh(() => getUsers().then((response) => setUsers(response.data ?? [])));
 
   const updateStatus = async (user: UserRecord) => {
     setBusyUserId(user.id);

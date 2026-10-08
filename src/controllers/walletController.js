@@ -31,8 +31,11 @@ const calculateEscrowReleasePlan = (orderItems = [], sellerEscrowMap = {}) => {
   return plan;
 };
 
-const ensureWallet = async (userId) => {
-  let wallet = await Wallet.findOne({ where: { userId } });
+const ensureWallet = async (userId, transaction) => {
+  const options = transaction
+    ? { transaction, lock: transaction.LOCK.UPDATE }
+    : {};
+  let wallet = await Wallet.findOne({ where: { userId }, ...options });
   if (!wallet) {
     wallet = await Wallet.create({
       userId,
@@ -41,14 +44,17 @@ const ensureWallet = async (userId) => {
       depositBalance: 0,
       contractStatus: 'inactive',
       minimumDeposit: DEFAULT_MIN_DEPOSIT,
-    });
+    }, transaction ? { transaction } : {});
   }
   return wallet;
 };
 
-const createNotification = async (userId, type, payload, channel = 'in-app') => {
+const createNotification = async (userId, type, payload, channel = 'in-app', transaction) => {
   if (!userId) return null;
-  return Notification.create({ userId, type, channel, payload });
+  return Notification.create(
+    { userId, type, channel, payload },
+    transaction ? { transaction } : {},
+  );
 };
 
 const applySellerContractRules = async (user, wallet, reason = 'deposit policy') => {
@@ -443,75 +449,113 @@ exports.holdEscrowOnSale = async (req, res, next) => {
 exports.releaseEscrowAfterSevenDays = async (req, res, next) => {
   try {
     const { orderId } = req.body || {};
-    const orderController = require('./orderController');
 
     if (orderId) {
-      const order = await Order.findByPk(orderId, { include: [{ model: OrderItem, include: [Product] }] });
-      if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-      if (order.status !== 'paid') return res.status(400).json({ success: false, message: 'Order must be paid before escrow can be released' });
-      if (order.escrowReleased) return res.status(400).json({ success: false, message: 'Already released' });
-
-      const now = Date.now();
-      const orderAge = now - new Date(order.createdAt).getTime();
-      if (orderAge < SEVEN_DAYS_MS) {
-        return res.status(400).json({ success: false, message: 'Escrow not yet releasable' });
-      }
-
-      const itemTotals = {};
-      for (const item of order.OrderItems || []) {
-        const sellerId = item.Product?.sellerId || item.sellerId;
-        if (!sellerId) continue;
-        const amount = toMoney((Number(item.price || 0) * Number(item.quantity || 1)));
-        itemTotals[sellerId] = toMoney((itemTotals[sellerId] || 0) + amount);
-      }
-
-      const sellerIds = Object.keys(itemTotals);
-      if (sellerIds.length === 0) {
-        return res.status(400).json({ success: false, message: 'No escrowed seller funds for this order' });
-      }
-
-      const results = [];
-      let totalReleased = 0;
-      for (const sellerId of sellerIds) {
-        const wallet = await ensureWallet(sellerId);
-        const escrowLocked = toMoney(wallet.escrowBalance || 0);
-        const releaseAmount = Math.min(toMoney(itemTotals[sellerId] || 0), escrowLocked);
-
-        if (releaseAmount <= 0) {
-          results.push({ sellerId, released: 0, escrowBalance: wallet.escrowBalance || 0, skipped: true });
-          continue;
+      const result = await sequelize.transaction(async (transaction) => {
+        const order = await Order.findByPk(orderId, {
+          include: [{ model: OrderItem, include: [Product] }],
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!order) {
+          const error = new Error('Order not found');
+          error.status = 404;
+          throw error;
+        }
+        if (order.status !== 'paid') {
+          const error = new Error('Order must be paid before escrow can be released');
+          error.status = 400;
+          throw error;
+        }
+        if (order.escrowReleased) {
+          const error = new Error('Already released');
+          error.status = 400;
+          throw error;
         }
 
-        const platformFee = toMoney(releaseAmount * 0.1);
-        const sellerReceived = toMoney(releaseAmount - platformFee);
+        const orderAge = Date.now() - new Date(order.createdAt).getTime();
+        if (orderAge < SEVEN_DAYS_MS) {
+          const error = new Error('Escrow can only be released after 7 days from order creation');
+          error.status = 400;
+          throw error;
+        }
 
-        wallet.escrowBalance = toMoney((wallet.escrowBalance || 0) - releaseAmount);
-        wallet.balance = addMoney(wallet.balance, sellerReceived);
-        await wallet.save();
-
-        await WalletTransaction.create({
-          walletId: wallet.id,
-          userId: sellerId,
-          type: 'escrow_release',
-          amount: sellerReceived,
-          relatedOrderId: order.id,
-          note: `Escrow released after 7 days for order ${order.id}; platform fee ${platformFee}`,
-          status: 'success',
+        const commission = await WalletTransaction.findOne({
+          where: { relatedOrderId: order.id, type: 'commission', status: 'success' },
+          attributes: ['id'],
+          transaction,
         });
+        const orderController = require('./orderController');
+        const sellerTotals = orderController.getSellerBreakdown(
+          order.OrderItems || [],
+          Boolean(commission),
+        );
+        const sellerIds = Object.keys(sellerTotals).filter((sellerId) => sellerTotals[sellerId] > 0);
+        if (sellerIds.length === 0) {
+          const error = new Error('No seller funds found for this order');
+          error.status = 400;
+          throw error;
+        }
 
-        await createNotification(sellerId, 'escrow_released', { orderId: order.id, amount: sellerReceived, platformFee }, 'email');
-        totalReleased += sellerReceived;
-        results.push({ sellerId, released: sellerReceived, escrowBalance: wallet.escrowBalance, platformFee, skipped: false });
-      }
+        const releases = [];
+        for (const sellerId of sellerIds) {
+          const amount = toMoney(sellerTotals[sellerId]);
+          const wallet = await ensureWallet(sellerId, transaction);
+          if (toMoney(wallet.escrowBalance) < amount) {
+            const error = new Error(
+              `Insufficient escrow balance for seller ${sellerId}; required ${amount}, available ${toMoney(wallet.escrowBalance)}`,
+            );
+            error.status = 409;
+            throw error;
+          }
+          releases.push({ sellerId, amount, wallet });
+        }
 
-      order.escrowReleased = true;
-      order.releasedAt = new Date();
-      await order.save();
+        let totalReleased = 0;
+        for (const { sellerId, amount, wallet } of releases) {
+          wallet.escrowBalance = toMoney(Number(wallet.escrowBalance) - amount);
+          wallet.balance = addMoney(wallet.balance, amount);
+          await wallet.save({ transaction });
 
-      return res.json({ success: true, message: 'Escrow released per seller', data: { orderId: order.id, totalReleased, releases: results } });
+          await WalletTransaction.create({
+            walletId: wallet.id,
+            userId: sellerId,
+            type: 'escrow_release',
+            amount,
+            relatedOrderId: order.id,
+            note: `Escrow released after 7 days for order ${order.id}`,
+            status: 'success',
+          }, { transaction });
+
+          await createNotification(
+            sellerId,
+            'escrow_released',
+            { orderId: order.id, amount },
+            'email',
+            transaction,
+          );
+          totalReleased += amount;
+        }
+
+        order.escrowReleased = true;
+        order.releasedAt = new Date();
+        await order.save({ transaction });
+
+        return {
+          orderId: order.id,
+          totalReleased,
+          releases: releases.map(({ sellerId, amount, wallet }) => ({
+            sellerId,
+            released: amount,
+            escrowBalance: toMoney(wallet.escrowBalance),
+          })),
+        };
+      });
+
+      return res.json({ success: true, message: 'Escrow released per seller', data: result });
     }
 
-    return orderController.releaseEscrowForEligibleOrders(req, res, next);
+    return require('./orderController').releaseEscrowForEligibleOrders(req, res, next);
   } catch (err) { next(err); }
 };
 

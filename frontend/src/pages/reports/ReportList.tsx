@@ -6,6 +6,7 @@ import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
 import { dismissReport, getReports, resolveReport, type ReportRecord } from '../../api/reports';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 export function ReportListPage() {
   const [reports, setReports] = useState<ReportRecord[]>([]);
@@ -19,6 +20,7 @@ export function ReportListPage() {
   useEffect(() => {
     getReports().then((response) => setReports(response.data ?? [])).finally(() => setLoading(false));
   }, []);
+  useAdminDataRefresh(() => getReports().then((response) => setReports(response.data ?? [])));
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();

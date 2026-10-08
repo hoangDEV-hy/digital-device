@@ -4,6 +4,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { DataTable } from '../../components/DataTable';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { createCategory, deleteCategory, getCategories, updateCategory, type CategoryRecord } from '../../api/categories';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 export function CategoryListPage() {
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
@@ -16,6 +17,7 @@ export function CategoryListPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { getCategories().then((response) => setCategories(response.data ?? [])); }, []);
+  useAdminDataRefresh(() => getCategories().then((response) => setCategories(response.data ?? [])));
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();

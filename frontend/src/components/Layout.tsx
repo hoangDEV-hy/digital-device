@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
+import type { Socket } from "socket.io-client";
+import { createAdminSocket } from "../api/realtime";
 import { useAuthStore } from "../store/authStore";
 import { logout as logoutAdmin } from "../api/auth";
 
@@ -20,6 +23,34 @@ const navItems = [
 
 export function Layout() {
   const { user, refreshToken, logout } = useAuthStore();
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const [liveUpdatesStatus, setLiveUpdatesStatus] = useState<
+    "connecting" | "connected" | "disconnected"
+  >("connecting");
+
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const socket: Socket = createAdminSocket(accessToken);
+    const notifyDataChanged = () => {
+      window.dispatchEvent(new Event("admin:data:changed"));
+    };
+    const handleConnect = () => {
+      setLiveUpdatesStatus("connected");
+      notifyDataChanged();
+    };
+    const handleDisconnect = () => setLiveUpdatesStatus("disconnected");
+
+    socket.on("connect", handleConnect);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("connect_error", handleDisconnect);
+    socket.on("admin:data:changed", notifyDataChanged);
+    socket.connect();
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [accessToken]);
 
   const handleLogout = async () => {
     try {
@@ -69,6 +100,13 @@ export function Layout() {
             Workspace / Admin Panel
           </div>
           <div className="flex items-center gap-4">
+            <div className={`text-xs font-medium ${liveUpdatesStatus === "connected" ? "text-emerald-600" : "text-amber-600"}`} role="status">
+              {liveUpdatesStatus === "connected"
+                ? "Đang cập nhật trực tiếp"
+                : liveUpdatesStatus === "connecting"
+                  ? "Đang kết nối cập nhật..."
+                  : "Mất kết nối cập nhật trực tiếp"}
+            </div>
             <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-100 text-xs font-bold text-orange-700">
                 {user?.fullName?.slice(0, 2).toUpperCase() || "AD"}

@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { getUserById, lockUser, resetDeviceIp, unlockUser, type UserRecord } from '../../api/users';
 import { getReports, type ReportRecord } from '../../api/reports';
 import { StatusBadge } from '../../components/StatusBadge';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 import { useAuthStore } from '../../store/authStore';
 
 export function UserDetailPage() {
@@ -23,6 +24,7 @@ export function UserDetailPage() {
   useEffect(() => {
     if (id) reload().finally(() => setLoading(false));
   }, [id]);
+  useAdminDataRefresh(reload);
 
   const updateStatus = async () => {
     if (!user) return;

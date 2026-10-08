@@ -22,6 +22,8 @@ module.exports = (server) => {
   });
 
   io.on('connection', (socket) => {
+    if (socket.data.user.role === 'admin') socket.join('admins');
+
     socket.on('chat:join', async (conversationId, acknowledge = () => {}) => {
       try {
         const participant = await ChatParticipant.findOne({ where: { conversationId, userId: socket.data.user.id } });

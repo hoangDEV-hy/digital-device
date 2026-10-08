@@ -4,6 +4,7 @@ import { Pagination } from '../../components/Pagination';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
 import { StatusBadge } from '../../components/StatusBadge';
 import { getPayments, type PaymentRecord, type PaymentStatus } from '../../api/payments';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 const labels: Record<PaymentStatus, string> = { pending: 'Đang chờ', success: 'Thành công', failed: 'Thất bại' };
 const tones: Record<PaymentStatus, 'warning' | 'success' | 'danger'> = { pending: 'warning', success: 'success', failed: 'danger' };
@@ -19,6 +20,7 @@ export function PaymentListPage() {
   useEffect(() => {
     getPayments().then((response) => setPayments(response.data ?? [])).finally(() => setLoading(false));
   }, []);
+  useAdminDataRefresh(() => getPayments().then((response) => setPayments(response.data ?? [])));
 
   const filtered = useMemo(() => payments.filter((payment) => {
     const text = `${payment.id} ${payment.orderId} ${payment.providerTxId ?? ''} ${payment.Order?.User?.fullName ?? ''} ${payment.Order?.User?.email ?? ''}`.toLowerCase();

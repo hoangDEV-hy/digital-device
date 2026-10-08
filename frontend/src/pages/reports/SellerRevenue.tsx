@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { getSellerRevenue, type SellerRevenueReport, type SellerRevenueRow } from '../../api/dashboard';
 import { DataTable } from '../../components/DataTable';
 import { SearchFilterBar } from '../../components/SearchFilterBar';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 const formatMoney = (value: number) => `${Number(value || 0).toLocaleString('vi-VN')} đ`;
 
@@ -17,6 +18,9 @@ export function SellerRevenuePage() {
       .catch((error: unknown) => toast.error(error instanceof Error ? error.message : 'Không tải được báo cáo doanh thu seller'))
       .finally(() => setLoading(false));
   }, []);
+  useAdminDataRefresh(() =>
+    getSellerRevenue().then((response) => setReport(response.data ?? null)),
+  );
 
   const sellers = useMemo(() => {
     const normalized = query.trim().toLowerCase();

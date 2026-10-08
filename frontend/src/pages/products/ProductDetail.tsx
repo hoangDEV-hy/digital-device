@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { getProductById, updateProductApproval, updateProductVisibility, type ProductRecord } from '../../api/products';
 import { StatusBadge } from '../../components/StatusBadge';
+import { useAdminDataRefresh } from '../../hooks/useAdminDataRefresh';
 
 export function ProductDetailPage() {
   const { id = '' } = useParams();
@@ -14,6 +15,7 @@ export function ProductDetailPage() {
   useEffect(() => {
     if (id) reload().finally(() => setLoading(false));
   }, [id]);
+  useAdminDataRefresh(reload);
 
   const review = async (status: 'approved' | 'rejected') => {
     if (!product) return;
